@@ -1,35 +1,54 @@
+<!-- src/views/LoginView.vue -->
 <template>
-  <div class="login-container">
-    <h2>🔑 로그인</h2>
-    <input v-model="username" placeholder="사용자명" type="text" />
-    <input v-model="password" placeholder="비밀번호" type="password" />
-    <button @click="login">로그인</button>
-    <p v-if="errorMessage">{{ errorMessage }}</p>
+  <div class="min-h-screen bg-gray-100 flex items-center justify-center">
+    <div class="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md">
+      <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">로그인</h2>
+      <form @submit.prevent="handleLogin" class="space-y-4">
+        <div>
+          <label class="block text-gray-700 mb-1">이메일</label>
+          <input
+            type="email"
+            v-model="email"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="you@example.com"
+            required
+          />
+        </div>
+        <div>
+          <label class="block text-gray-700 mb-1">비밀번호</label>
+          <input
+            type="password"
+            v-model="password"
+            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+            placeholder="••••••••"
+            required
+          />
+        </div>
+        <button
+          type="submit"
+          class="w-full py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg transition duration-200"
+        >
+          로그인
+        </button>
+      </form>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
+import { useRouter } from 'vue-router'; // useRouter를 추가로 import
 
-const username = ref('');
+const email = ref('');
 const password = ref('');
-const errorMessage = ref('');
+const router = useRouter(); // useRouter로 라우터 객체 가져오기
 
-const login = () => {
-  if (username.value && password.value) {
-    errorMessage.value = '';
-    // 로그인 처리 로직 추가
-    alert('로그인 성공!');
+const handleLogin = () => {
+  console.log('로그인 시도:', email.value, password.value);
+  if (email.value && password.value) {
+    router.push('/camera'); // 로그인 성공 시 '/camera' 페이지로 이동
   } else {
-    errorMessage.value = '사용자명과 비밀번호를 입력하세요.';
+    alert('이메일과 비밀번호를 입력해주세요.');
   }
 };
 </script>
-
-<style scoped>
-.login-container {
-  padding: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-}
-</style>

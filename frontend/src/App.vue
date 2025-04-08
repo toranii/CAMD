@@ -6,6 +6,9 @@
       <router-link to="/login">Login</router-link> |
       <router-link to="/alerts">Alerts</router-link> |
       <router-link to="/dashboard">Dashboard</router-link>
+      <h1 class="text-3xl font-bold underline text-blue-500">
+        Tailwind 적용 확인!
+      </h1>
     </nav>
     <router-view />
   </div>

@@ -1,12 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import HomeView from '../views/HomeView.vue';
 import CameraView from '../components/CameraView.vue';
 import LoginView from '../components/LoginView.vue';
 import AlertView from '../components/AlertView.vue';
-import DashboardView from '../components/DashBoardview.vue';
+import DashboardView from '../components/DashBoardView.vue';
 
 const routes = [
-  { path: '/', component: HomeView },
+  { path: '/', component: LoginView }, // 로그인 페이지를 메인으로 설정
   { path: '/camera', component: CameraView },
   { path: '/login', component: LoginView },
   { path: '/alerts', component: AlertView },
