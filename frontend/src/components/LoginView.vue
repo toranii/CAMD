@@ -1,4 +1,3 @@
-<!-- src/views/LoginView.vue -->
 <template>
   <div class="min-h-screen bg-gray-100 flex items-center justify-center">
     <div class="bg-white p-10 rounded-2xl shadow-xl w-full max-w-md">
@@ -36,17 +35,23 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router'; // useRouter를 추가로 import
+import { ref, defineEmits } from 'vue';
+import { useRouter } from 'vue-router';
+
+// 이벤트를 부모 컴포넌트로 전달하기 위한 정의
+const emit = defineEmits(['login-success']); // 부모 컴포넌트로 이벤트 전달
 
 const email = ref('');
 const password = ref('');
-const router = useRouter(); // useRouter로 라우터 객체 가져오기
+const router = useRouter();
 
 const handleLogin = () => {
   console.log('로그인 시도:', email.value, password.value);
+  // 로그인 성공 시
   if (email.value && password.value) {
-    router.push('/camera'); // 로그인 성공 시 '/camera' 페이지로 이동
+    // 로그인 성공 시, 부모 컴포넌트(App.vue)로 이벤트를 보내 isLoggedIn을 true로 변경
+    emit('login-success'); // 부모 컴포넌트로 login-success 이벤트 발생
+    router.push('/camera'); // 로그인 후 '/camera' 페이지로 이동
   } else {
     alert('이메일과 비밀번호를 입력해주세요.');
   }
