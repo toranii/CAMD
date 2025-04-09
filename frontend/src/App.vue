@@ -7,6 +7,7 @@
     <div v-else>
       <!-- 로그인 후에는 상단 메뉴와 로그아웃 버튼 표시 -->
       <nav class="navbar">
+        <router-link to="/home" class="nav-item">홈</router-link>
         <router-link to="/camera" class="nav-item">카메라</router-link>
         <router-link to="/dashboard" class="nav-item">대시보드</router-link>
         <router-link to="/alerts" class="nav-item">알림</router-link>
@@ -35,9 +36,9 @@ onMounted(() => {
   isLoggedIn.value = storedLoginStatus === 'true';
   updateLoginPageStatus(route.path);
 
-  // ✅ 로그인 상태일 때 로그인 경로로 접근하면 카메라 페이지로 강제 이동
+  // ✅ 로그인 상태일 때 로그인 경로로 접근하면 홈 페이지로 강제 이동
   if (isLoggedIn.value && (route.path === '/' || route.path === '/login')) {
-    router.replace('/camera');
+    router.replace('/home');
   }
 });
 
@@ -48,7 +49,7 @@ watch(
     updateLoginPageStatus(newPath);
 
     if (isLoggedIn.value && (newPath === '/' || newPath === '/login')) {
-      router.replace('/camera');
+      router.replace('/home');
     }
   },
 );
@@ -61,7 +62,7 @@ const updateLoginPageStatus = (path) => {
 const handleLoginSuccess = () => {
   isLoggedIn.value = true;
   localStorage.setItem('isLoggedIn', 'true');
-  router.push('/camera');
+  router.push('/home');
 };
 
 // 로그아웃 처리

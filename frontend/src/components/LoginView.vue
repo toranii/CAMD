@@ -51,7 +51,7 @@ const handleLogin = () => {
   if (email.value && password.value) {
     // 로그인 성공 시, 부모 컴포넌트(App.vue)로 이벤트를 보내 isLoggedIn을 true로 변경
     emit('login-success'); // 부모 컴포넌트로 login-success 이벤트 발생
-    router.push('/camera'); // 로그인 후 '/camera' 페이지로 이동
+    router.push('/home'); // 로그인 후 '/camera' 페이지로 이동
   } else {
     alert('이메일과 비밀번호를 입력해주세요.');
   }
