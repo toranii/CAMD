@@ -1,9 +1,8 @@
 <template>
   <div id="app">
     <!-- 로그인 상태에 따라 메뉴 표시/숨기기 -->
-    <div v-if="!isLoggedIn">
+    <div v-if="isLoginPage">
       <LoginView @login-success="handleLoginSuccess" />
-      <!-- 로그인 화면만 표시 -->
     </div>
     <div v-else>
       <!-- 로그인 후에는 상단 메뉴와 로그아웃 버튼 표시 -->
@@ -15,39 +14,61 @@
         <button @click="logout" class="logout-btn">로그아웃</button>
       </nav>
       <router-view />
-      <!-- 메뉴가 있는 페이지 -->
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import LoginView from './components/LoginView.vue'; // 로그인 컴포넌트
-import { useRouter } from 'vue-router';
+import { ref, onMounted, watch } from 'vue';
+import LoginView from './components/LoginView.vue';
+import { useRouter, useRoute } from 'vue-router';
 
 const isLoggedIn = ref(false);
+const isLoginPage = ref(true);
+
 const router = useRouter();
+const route = useRoute();
 
 // 로그인 상태 확인
 onMounted(() => {
   const storedLoginStatus = localStorage.getItem('isLoggedIn');
-  if (storedLoginStatus === 'true') {
-    isLoggedIn.value = true;
+  isLoggedIn.value = storedLoginStatus === 'true';
+  updateLoginPageStatus(route.path);
+
+  // ✅ 로그인 상태일 때 로그인 경로로 접근하면 카메라 페이지로 강제 이동
+  if (isLoggedIn.value && (route.path === '/' || route.path === '/login')) {
+    router.replace('/camera');
   }
 });
+
+// 라우트 변경 시 로그인 페이지 여부 확인 및 리다이렉션
+watch(
+  () => route.path,
+  (newPath) => {
+    updateLoginPageStatus(newPath);
+
+    if (isLoggedIn.value && (newPath === '/' || newPath === '/login')) {
+      router.replace('/camera');
+    }
+  },
+);
+
+const updateLoginPageStatus = (path) => {
+  isLoginPage.value = path === '/' || path === '/login';
+};
 
 // 로그인 성공 시 처리
 const handleLoginSuccess = () => {
   isLoggedIn.value = true;
   localStorage.setItem('isLoggedIn', 'true');
-  router.push('/camera'); // 로그인 후 카메라 페이지로 이동
+  router.push('/camera');
 };
 
 // 로그아웃 처리
 const logout = () => {
   isLoggedIn.value = false;
-  localStorage.removeItem('isLoggedIn'); // 로그인 상태 해제
-  router.push('/'); // 로그인 화면으로 이동
+  localStorage.removeItem('isLoggedIn');
+  router.push('/');
 };
 </script>
 
