@@ -1,113 +1,272 @@
 <template>
   <div class="camera-container">
-    <h2 class="text-3xl font-bold text-center text-gray-800 mb-6">
-      📷 카메라 스트리밍 화면
-    </h2>
+    <!-- 제목 -->
+    <h2 class="page-title">카메라</h2>
 
-    <div class="input-area mb-4">
-      <label for="url" class="block text-gray-700 mb-2">ESP32-CAM 주소</label>
+    <!-- 등록, 수정, 삭제 컨트롤 버튼들 -->
+    <div class="edit-control-box button-group">
+      <template v-if="!editMode && !showRegisterBox">
+        <button @click="startRegisterMode" class="common-btn register-btn">
+          등록
+        </button>
+        <button @click="startEditMode" class="common-btn edit-btn">수정</button>
+        <button @click="startDeleteMode" class="common-btn delete-btn">
+          삭제
+        </button>
+      </template>
+      <template v-else-if="editMode || showRegisterBox">
+        <button @click="confirmAction" class="common-btn confirm-btn">
+          확인
+        </button>
+        <button @click="cancelAction" class="common-btn cancel-btn">
+          취소
+        </button>
+      </template>
+    </div>
+
+    <!-- 카메라 등록 텍스트 박스 -->
+    <div v-if="showRegisterBox" class="register-box">
       <input
-        v-model="streamUrl"
-        id="url"
+        v-model="newCameraUrl"
         type="text"
         placeholder="예: http://192.168.0.100/"
-        class="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-400"
-        @input="validateUrl"
+        class="input-url"
       />
-      <p v-if="invalidUrl" class="text-red-500 text-sm mt-1">
-        유효한 URL을 입력해주세요.
-      </p>
+      <p v-if="registrationError" class="error-msg">등록에 실패하였습니다.</p>
     </div>
 
-    <div class="video-area mb-4" v-if="streamUrl && !invalidUrl">
-      <img
-        :src="streamUrl"
-        alt="ESP32-CAM 스트리밍"
-        class="w-full max-h-400px object-cover rounded-md border-2 border-gray-200"
-      />
-    </div>
-
-    <div v-else class="text-center text-gray-500">
-      <p>스트리밍을 보기 위한 URL을 입력해주세요.</p>
-    </div>
-
-    <!-- 로딩 상태 표시 -->
-    <div v-if="loading" class="flex justify-center mt-4">
-      <div
-        class="spinner-border animate-spin rounded-full border-t-4 border-blue-500 w-8 h-8"
-      ></div>
+    <!-- 등록된 화면 -->
+    <div class="camera-view-section">
+      <div class="stream-wrapper">
+        <div class="stream-container" :style="streamContainerStyle">
+          <div
+            v-for="camera in cameras"
+            :key="camera.id"
+            class="stream-box"
+            :class="{ selected: isCameraSelected(camera.id) }"
+            @click="selectCamera(camera.id)"
+          >
+            <img
+              :src="camera.url"
+              alt="ESP32-CAM 스트링밍"
+              class="stream-img"
+            />
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 
-// 스트리밍 URL 상태
-const streamUrl = ref('');
-const invalidUrl = ref(false); // URL 유효성 검사 상태
-const loading = ref(false); // 로딩 상태
+let nextId = 0;
+const cameras = ref([]);
+const selectedCameras = ref([]);
+const selectedCamera = ref(null);
+const newCameraUrl = ref('');
+const showRegisterBox = ref(false);
+const registrationError = ref(false);
+const editMode = ref(false);
+const deleteMode = ref(false);
 
-// URL 유효성 검사
-const validateUrl = () => {
-  const urlPattern =
-    /^(http:\/\/|https:\/\/)([a-zA-Z0-9.-]+)(\/[a-zA-Z0-9@:%._+~#?&//=]*)?/;
-
-  invalidUrl.value = !urlPattern.test(streamUrl.value);
-  loading.value = !invalidUrl.value && streamUrl.value.length > 0;
+const addCamera = () => {
+  if (newCameraUrl.value.trim() === '') {
+    registrationError.value = true;
+    return;
+  }
+  cameras.value.push({ id: nextId++, url: newCameraUrl.value });
+  newCameraUrl.value = '';
+  showRegisterBox.value = false;
+  registrationError.value = false;
+  editMode.value = false;
 };
+
+const startRegisterMode = () => {
+  showRegisterBox.value = true;
+  editMode.value = false;
+  deleteMode.value = false;
+};
+
+const isCameraSelected = (id) => {
+  return deleteMode.value
+    ? selectedCameras.value.includes(id)
+    : selectedCamera.value === id;
+};
+
+const selectCamera = (id) => {
+  if (editMode.value) {
+    if (deleteMode.value) {
+      if (selectedCameras.value.includes(id)) {
+        selectedCameras.value = selectedCameras.value.filter((c) => c !== id);
+      } else {
+        selectedCameras.value.push(id);
+      }
+    } else {
+      selectedCamera.value = selectedCamera.value === id ? null : id;
+    }
+  }
+};
+
+const startEditMode = () => {
+  editMode.value = true;
+  deleteMode.value = false;
+  showRegisterBox.value = false;
+  selectedCamera.value = null;
+};
+
+const startDeleteMode = () => {
+  deleteMode.value = true;
+  editMode.value = true;
+  showRegisterBox.value = false;
+  selectedCameras.value = [];
+};
+
+const confirmAction = () => {
+  if (deleteMode.value && selectedCameras.value.length > 0) {
+    cameras.value = cameras.value.filter(
+      (camera) => !selectedCameras.value.includes(camera.id),
+    );
+    alert('삭제되었습니다.');
+    selectedCameras.value = [];
+  } else if (editMode.value && selectedCamera.value !== null) {
+    alert(`카메라 수정되었습니다.`);
+    selectedCamera.value = null;
+  } else if (showRegisterBox.value && newCameraUrl.value.trim() !== '') {
+    addCamera();
+    return;
+  }
+  editMode.value = false;
+  deleteMode.value = false;
+  showRegisterBox.value = false;
+};
+
+const cancelAction = () => {
+  editMode.value = false;
+  deleteMode.value = false;
+  showRegisterBox.value = false;
+  selectedCamera.value = null;
+  selectedCameras.value = [];
+};
+
+const streamContainerStyle = computed(() => {
+  const length = cameras.value.length;
+  if (length <= 2) return { gridTemplateColumns: '1fr 1fr' };
+  if (length === 3) return { gridTemplateColumns: '1fr 1fr 1fr' };
+  if (length === 4)
+    return { gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr' };
+  return {
+    gridTemplateColumns: '1fr 1fr',
+    gridAutoRows: 'minmax(200px, auto)',
+  };
+});
 </script>
 
 <style scoped>
 .camera-container {
-  max-width: 600px;
+  max-width: 1000px;
   margin: 40px auto;
-  padding: 30px;
+  padding: 20px;
   border: 1px solid #ccc;
-  border-radius: 12px;
-  background-color: #fafafa;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  background-color: #f9f9f9;
 }
 
-.input-area {
-  margin-bottom: 1.5rem;
+.page-title {
+  font-size: 2rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 20px;
+  color: #2d3748;
 }
 
-input {
+.input-url {
   width: 100%;
-  padding: 12px;
-  margin-top: 8px;
-  font-size: 1.1rem;
+  padding: 10px;
+  margin-top: 12px;
   border-radius: 8px;
-  border: 1px solid #ddd;
+  border: 1px solid #ccc;
 }
 
-.video-area img {
+.common-btn {
+  padding: 10px 20px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: bold;
+  margin-top: 10px;
+}
+
+.register-btn {
+  background-color: #38b2ac;
+  color: white;
+}
+
+.cancel-btn {
+  background-color: #e53e3e;
+  color: white;
+}
+
+.confirm-btn {
+  background-color: #4a90e2;
+  color: white;
+}
+
+.edit-btn {
+  background-color: #4299e1;
+  color: white;
+}
+
+.delete-btn {
+  background-color: #e53e3e;
+  color: white;
+}
+
+.stream-wrapper {
+  margin-top: 30px;
+}
+
+.stream-container {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.stream-box {
+  border: 1px solid #ccc;
+  border-radius: 10px;
+  padding: 10px;
+  position: relative;
+  background-color: white;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stream-box:hover {
+  transform: scale(1.01);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.stream-img {
   width: 100%;
   height: auto;
-  max-height: 400px;
   object-fit: cover;
-  border-radius: 8px;
-  border: 2px solid #ccc;
 }
 
-.spinner-border {
-  border-top-color: transparent;
+.selected {
+  border: 2px solid #4fd1c5;
+  opacity: 0.8;
 }
 
-.text-red-500 {
-  color: #f56565;
+.edit-control-box {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 20px;
 }
 
-.text-center {
-  text-align: center;
-}
-
-.text-gray-500 {
-  color: #6b7280;
-}
-
-.text-gray-700 {
-  color: #374151;
+.camera-view-section {
+  margin-top: 40px;
 }
 </style>
