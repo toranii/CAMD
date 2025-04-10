@@ -118,7 +118,12 @@ const logout = () => {
   padding: 20px 15px;
   gap: 10px;
   box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
-  position: relative;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  overflow-y: auto;
+  z-index: 1000;
 }
 
 .sidebar-header {
@@ -189,6 +194,8 @@ const logout = () => {
 .content {
   flex: 1;
   padding: 20px;
+  margin-left: 240px;
   overflow-y: auto;
+  min-height: 100vh;
 }
 </style>
