@@ -1,6 +1,6 @@
 <template>
   <div class="home-container">
-    <h1 class="title">Home</h1>
+    <h1 class="title">🏠 홈 화면</h1>
     <div class="grid-layout">
       <!-- 1. 프로필 박스 -->
       <div class="box profile-box">

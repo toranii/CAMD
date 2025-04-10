@@ -1,7 +1,7 @@
 <template>
   <div class="camera-container">
     <!-- 제목 -->
-    <h2 class="page-title">카메라</h2>
+    <h2 class="page-title">🎥 카메라</h2>
 
     <!-- 등록, 수정, 삭제 컨트롤 버튼들 -->
     <div class="edit-control-box button-group">
@@ -124,19 +124,25 @@ const startDeleteMode = () => {
 };
 
 const confirmAction = () => {
-  if (deleteMode.value && selectedCameras.value.length > 0) {
+  if (deleteMode.value && selectedCameras.value.length === 0) return;
+  if (editMode.value && selectedCamera.value === null && !deleteMode.value)
+    return;
+  if (showRegisterBox.value && newCameraUrl.value.trim() === '') return;
+
+  if (deleteMode.value) {
     cameras.value = cameras.value.filter(
       (camera) => !selectedCameras.value.includes(camera.id),
     );
     alert('삭제되었습니다.');
     selectedCameras.value = [];
-  } else if (editMode.value && selectedCamera.value !== null) {
+  } else if (editMode.value) {
     alert(`카메라 수정되었습니다.`);
     selectedCamera.value = null;
-  } else if (showRegisterBox.value && newCameraUrl.value.trim() !== '') {
+  } else if (showRegisterBox.value) {
     addCamera();
     return;
   }
+
   editMode.value = false;
   deleteMode.value = false;
   showRegisterBox.value = false;
@@ -151,15 +157,39 @@ const cancelAction = () => {
 };
 
 const streamContainerStyle = computed(() => {
-  const length = cameras.value.length;
-  if (length <= 2) return { gridTemplateColumns: '1fr 1fr' };
-  if (length === 3) return { gridTemplateColumns: '1fr 1fr 1fr' };
-  if (length === 4)
+  const count = cameras.value.length;
+
+  if (count === 1) return { gridTemplateColumns: '1fr' };
+  if (count === 2) return { gridTemplateColumns: '1fr 1fr' };
+  if (count === 3) return { gridTemplateColumns: '1fr 1fr 1fr' };
+  if (count === 4)
     return { gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr' };
-  return {
-    gridTemplateColumns: '1fr 1fr',
-    gridAutoRows: 'minmax(200px, auto)',
-  };
+  if (count === 5)
+    return { gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '1fr 1fr' };
+  if (count === 6)
+    return { gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '1fr 1fr' };
+  if (count === 7)
+    return {
+      gridTemplateColumns: '1fr 1fr 1fr',
+      gridAutoRows: 'minmax(200px, auto)',
+    };
+  if (count === 8)
+    return {
+      gridTemplateColumns: '1fr 1fr 1fr',
+      gridAutoRows: 'minmax(200px, auto)',
+    };
+  if (count === 9)
+    return {
+      gridTemplateColumns: '1fr 1fr 1fr',
+      gridAutoRows: 'minmax(200px, auto)',
+    };
+  if (count >= 10)
+    return {
+      gridTemplateColumns: '1fr 1fr 1fr',
+      gridAutoRows: 'minmax(200px, auto)',
+    };
+
+  return { gridTemplateColumns: '1fr' }; // 기본값
 });
 </script>
 
