@@ -182,18 +182,29 @@ const streamContainerStyle = computed(() => {
   }
   const count = cameras.value.length;
   const width = windowWidth.value;
+
   if (count === 1) return { gridTemplateColumns: '1fr' };
-  if (count === 2) return { gridTemplateColumns: '1fr 1fr' };
-  if (count === 3 || count === 4)
-    return { gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr' };
-  if (count >= 5) {
-    let cols = 2;
-    if (width >= 1024) cols = 3;
-    if (width >= 1400) cols = 4;
-    return {
-      gridTemplateColumns: `repeat(${cols}, 1fr)`,
-      gridAutoRows: 'minmax(200px, auto)',
-    };
+  if (count >= 2 && count <= 4) {
+    if (width < 600) return { gridTemplateColumns: '1fr' };
+    else return { gridTemplateColumns: '1fr 1fr' };
+  }
+  if (count >= 5 && count <= 9) {
+    if (width < 600) return { gridTemplateColumns: '1fr' };
+    else if (width < 1024) return { gridTemplateColumns: '1fr 1fr' };
+    else return { gridTemplateColumns: '1fr 1fr 1fr' };
+  }
+  if (count >= 10 && count <= 24) {
+    if (width < 600) return { gridTemplateColumns: '1fr' };
+    else if (width < 1024) return { gridTemplateColumns: '1fr 1fr' };
+    else if (width < 1400) return { gridTemplateColumns: '1fr 1fr 1fr' };
+    else return { gridTemplateColumns: '1fr 1fr 1fr 1fr' };
+  }
+  if (count >= 25) {
+    if (width < 600) return { gridTemplateColumns: '1fr' };
+    else if (width < 1024) return { gridTemplateColumns: '1fr 1fr' };
+    else if (width < 1400) return { gridTemplateColumns: '1fr 1fr 1fr' };
+    else if (width < 1800) return { gridTemplateColumns: '1fr 1fr 1fr 1fr' };
+    else return { gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr' };
   }
   return { gridTemplateColumns: '1fr' };
 });
