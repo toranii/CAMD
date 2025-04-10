@@ -1,9 +1,7 @@
 <template>
   <div class="camera-container">
-    <!-- 제목 -->
     <h2 class="page-title">🎥 카메라</h2>
 
-    <!-- 등록, 수정, 삭제 컨트롤 버튼들 -->
     <div class="edit-control-box button-group">
       <template v-if="!editMode && !showRegisterBox">
         <button @click="startRegisterMode" class="common-btn register-btn">
@@ -24,7 +22,6 @@
       </template>
     </div>
 
-    <!-- 카메라 등록 텍스트 박스 -->
     <div v-if="showRegisterBox" class="register-box">
       <input
         v-model="newCameraUrl"
@@ -35,7 +32,6 @@
       <p v-if="registrationError" class="error-msg">등록에 실패하였습니다.</p>
     </div>
 
-    <!-- 등록된 화면 -->
     <div class="camera-view-section">
       <div class="stream-wrapper">
         <div class="stream-container" :style="streamContainerStyle">
@@ -43,12 +39,16 @@
             v-for="camera in cameras"
             :key="camera.id"
             class="stream-box"
-            :class="{ selected: isCameraSelected(camera.id) }"
-            @click="selectCamera(camera.id)"
+            :class="{
+              selected: isCameraSelected(camera.id),
+              expanded: expandedCamera === camera.id,
+            }"
+            @click="handleCameraClick(camera.id)"
+            v-show="!expandedCamera || expandedCamera === camera.id"
           >
             <img
               :src="camera.url"
-              alt="ESP32-CAM 스트링밍"
+              alt="ESP32-CAM 스트리밍"
               class="stream-img"
             />
           </div>
@@ -59,7 +59,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 
 let nextId = 0;
 const cameras = ref([]);
@@ -70,6 +70,14 @@ const showRegisterBox = ref(false);
 const registrationError = ref(false);
 const editMode = ref(false);
 const deleteMode = ref(false);
+const expandedCamera = ref(null);
+const windowWidth = ref(window.innerWidth);
+
+onMounted(() => {
+  window.addEventListener('resize', () => {
+    windowWidth.value = window.innerWidth;
+  });
+});
 
 const addCamera = () => {
   if (newCameraUrl.value.trim() === '') {
@@ -107,6 +115,17 @@ const selectCamera = (id) => {
       selectedCamera.value = selectedCamera.value === id ? null : id;
     }
   }
+};
+
+const toggleExpand = (id) => {
+  if (!editMode.value && !showRegisterBox.value) {
+    expandedCamera.value = expandedCamera.value === id ? null : id;
+  }
+};
+
+const handleCameraClick = (id) => {
+  toggleExpand(id);
+  selectCamera(id);
 };
 
 const startEditMode = () => {
@@ -154,42 +173,29 @@ const cancelAction = () => {
   showRegisterBox.value = false;
   selectedCamera.value = null;
   selectedCameras.value = [];
+  expandedCamera.value = null;
 };
 
 const streamContainerStyle = computed(() => {
+  if (expandedCamera.value !== null) {
+    return { gridTemplateColumns: '1fr' };
+  }
   const count = cameras.value.length;
-
+  const width = windowWidth.value;
   if (count === 1) return { gridTemplateColumns: '1fr' };
   if (count === 2) return { gridTemplateColumns: '1fr 1fr' };
-  if (count === 3) return { gridTemplateColumns: '1fr 1fr 1fr' };
-  if (count === 4)
+  if (count === 3 || count === 4)
     return { gridTemplateColumns: '1fr 1fr', gridTemplateRows: '1fr 1fr' };
-  if (count === 5)
-    return { gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '1fr 1fr' };
-  if (count === 6)
-    return { gridTemplateColumns: '1fr 1fr 1fr', gridTemplateRows: '1fr 1fr' };
-  if (count === 7)
+  if (count >= 5) {
+    let cols = 2;
+    if (width >= 1024) cols = 3;
+    if (width >= 1400) cols = 4;
     return {
-      gridTemplateColumns: '1fr 1fr 1fr',
+      gridTemplateColumns: `repeat(${cols}, 1fr)`,
       gridAutoRows: 'minmax(200px, auto)',
     };
-  if (count === 8)
-    return {
-      gridTemplateColumns: '1fr 1fr 1fr',
-      gridAutoRows: 'minmax(200px, auto)',
-    };
-  if (count === 9)
-    return {
-      gridTemplateColumns: '1fr 1fr 1fr',
-      gridAutoRows: 'minmax(200px, auto)',
-    };
-  if (count >= 10)
-    return {
-      gridTemplateColumns: '1fr 1fr 1fr',
-      gridAutoRows: 'minmax(200px, auto)',
-    };
-
-  return { gridTemplateColumns: '1fr' }; // 기본값
+  }
+  return { gridTemplateColumns: '1fr' };
 });
 </script>
 
@@ -298,5 +304,10 @@ const streamContainerStyle = computed(() => {
 
 .camera-view-section {
   margin-top: 40px;
+}
+
+.expanded {
+  grid-column: 1 / -1;
+  z-index: 10;
 }
 </style>
