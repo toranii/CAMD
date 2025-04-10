@@ -73,6 +73,57 @@ const deleteMode = ref(false);
 const expandedCamera = ref(null);
 const windowWidth = ref(window.innerWidth);
 
+// const SERVER_URL = 'localhost:5000';
+
+// 서버에서 해당 IP의 토큰을 요청하는 함수
+/*const getTokenForCamera = async (ip) => {
+  try {
+    const res = await fetch(`${SERVER_URL}/api/token?ip=${ip}`);
+    const data = await res.json();
+    return data.token || null;
+  } catch (e) {
+    console.error('토큰 요청 실패:', e);
+    return null;
+  }
+}; */
+
+// addCamera 함수
+/* const addCamera = async () => {
+  const rawUrl = newCameraUrl.value.trim();
+  if (!rawUrl) {
+    registrationError.value = true;
+    return;
+  }
+  try {
+    const urlObj = new URL(rawUrl);
+    const ip = urlObj.hostname;
+
+    const token = await getTokenForCamera(ip);
+    if (!token) {
+      registrationError.value = true;
+      console.error('토큰이 없습니다.');
+      return;
+    }
+
+    const tokenParam = rawUrl.includes('?')
+      ? `&token=${token}`
+      : `?token=${token}`;
+
+    const fullUrl = rawUrl + tokenParam;
+
+    console.log('최종 스트리밍 URL:', fullUrl); // 디버깅용
+    cameras.value.push({ id: nextId++, url: fullUrl });
+    newCameraUrl.value = '';
+    showRegisterBox.value = false;
+    registrationError.value = false;
+    editMode.value = false;
+  } catch (error) {
+    console.error('URL 파싱 실패:', error);
+    registrationError.value = true;
+  }
+};
+*/
+
 onMounted(() => {
   window.addEventListener('resize', () => {
     windowWidth.value = window.innerWidth;
