@@ -1,7 +1,7 @@
 <template>
   <div class="settings-container">
     <h2 class="title">⚙️ 설정</h2>
-    <p class="description">사용자 맞춤 설정을 조정할 수 있습니다.</p>
+    <p class="description">사용자 맞춰 설정을 조정할 수 있습니다.</p>
 
     <!-- 알림 설정 -->
     <div class="setting-group">
@@ -52,7 +52,7 @@
     </div>
 
     <div class="actions">
-      <button @click="saveSettings">💾 저장</button>
+      <button @click="saveSettings" :disabled="!hasChanged">저장</button>
     </div>
 
     <p v-if="message" class="message">{{ message }}</p>
@@ -60,7 +60,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 
 const notificationSetting = ref('all');
 const nickname = ref('');
@@ -68,7 +68,8 @@ const password = ref('');
 const cameraBaseUrl = ref('');
 const message = ref('');
 
-// 더미 카메라 목록 (추후 백엔드 연동 예정)
+const initialSettings = ref({});
+
 const dummyCameras = [
   { id: 0, name: '카메라 기본', url: 'http://192.168.0.7:81/stream' },
   { id: 1, name: '카메라 A', url: 'http://192.168.0.101:81/stream' },
@@ -79,6 +80,22 @@ const dummyCameras = [
 onMounted(() => {
   const savedCameraUrl = localStorage.getItem('cameraBaseUrl');
   if (savedCameraUrl) cameraBaseUrl.value = savedCameraUrl;
+
+  initialSettings.value = {
+    notificationSetting: notificationSetting.value,
+    nickname: nickname.value,
+    password: password.value,
+    cameraBaseUrl: cameraBaseUrl.value,
+  };
+});
+
+const hasChanged = computed(() => {
+  return (
+    notificationSetting.value !== initialSettings.value.notificationSetting ||
+    nickname.value !== initialSettings.value.nickname ||
+    password.value !== initialSettings.value.password ||
+    cameraBaseUrl.value !== initialSettings.value.cameraBaseUrl
+  );
 });
 
 const saveSettings = () => {
@@ -91,6 +108,13 @@ const saveSettings = () => {
     message.value += `\n비밀번호가 변경되었습니다.`;
   }
   localStorage.setItem('cameraBaseUrl', cameraBaseUrl.value);
+
+  initialSettings.value = {
+    notificationSetting: notificationSetting.value,
+    nickname: nickname.value,
+    password: password.value,
+    cameraBaseUrl: cameraBaseUrl.value,
+  };
 };
 </script>
 
@@ -152,7 +176,14 @@ const saveSettings = () => {
   transition: background-color 0.3s ease;
 }
 
-.actions button:hover {
+.actions button:disabled {
+  background-color: #e2e8f0;
+  color: #a0aec0;
+  cursor: not-allowed;
+  border: 1px solid #cbd5e0;
+}
+
+.actions button:hover:enabled {
   background-color: #3182ce;
 }
 

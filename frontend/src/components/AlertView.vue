@@ -19,12 +19,24 @@
 
     <!-- 삭제 버튼 및 확인/취소 버튼 -->
     <div class="actions">
-      <button v-if="!deleteMode" @click="deleteMode = true" class="delete-btn">
+      <button
+        v-if="!deleteMode"
+        @click="deleteMode = true"
+        class="common-btn delete-btn"
+      >
         삭제
       </button>
       <template v-else>
-        <button @click="confirmDelete" class="confirm-btn">확인</button>
-        <button @click="cancelDelete" class="cancel-btn">취소</button>
+        <button
+          @click="confirmDelete"
+          class="common-btn confirm-btn"
+          :disabled="selectedAlerts.length === 0"
+        >
+          확인
+        </button>
+        <button @click="cancelDelete" class="common-btn cancel-btn">
+          취소
+        </button>
       </template>
     </div>
   </div>
@@ -123,13 +135,22 @@ const cancelDelete = () => {
   text-align: right;
 }
 
-.actions button {
+.common-btn {
   padding: 8px 16px;
   font-size: 0.9rem;
   border-radius: 6px;
   cursor: pointer;
   border: none;
   margin-left: 0.5rem;
+  font-weight: bold;
+  transition: background-color 0.3s ease;
+}
+
+.common-btn:disabled {
+  background-color: #e2e8f0;
+  color: #a0aec0;
+  cursor: not-allowed;
+  border: 1px solid #cbd5e0;
 }
 
 .delete-btn {
@@ -138,12 +159,12 @@ const cancelDelete = () => {
 }
 
 .confirm-btn {
-  background-color: #4299e1;
+  background-color: #4a90e2;
   color: white;
 }
 
 .cancel-btn {
-  background-color: #a0aec0;
+  background-color: #e53e3e;
   color: white;
 }
 </style>

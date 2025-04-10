@@ -23,7 +23,15 @@
         </button>
       </template>
       <template v-else-if="editMode || showRegisterBox">
-        <button @click="confirmAction" class="common-btn confirm-btn">
+        <button
+          @click="confirmAction"
+          class="common-btn confirm-btn"
+          :disabled="
+            (deleteMode && selectedCameras.length === 0) ||
+            (editMode && !deleteMode && selectedCamera === null) ||
+            (showRegisterBox && newCameraUrl.trim() === '')
+          "
+        >
           확인
         </button>
         <button @click="cancelAction" class="common-btn cancel-btn">
@@ -255,6 +263,14 @@ const streamContainerStyle = computed(() => {
   font-size: 1rem;
   font-weight: bold;
   margin-top: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.common-btn:disabled {
+  background-color: #e2e8f0;
+  color: #a0aec0;
+  cursor: not-allowed;
+  border: 1px solid #cbd5e0;
 }
 
 .register-btn {
