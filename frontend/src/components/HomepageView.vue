@@ -14,10 +14,12 @@
       <div class="box camera-box">
         <h2>카메라</h2>
         <img
-          src="http://192.168.0.7:81/stream"
+          v-if="cameraBaseUrl"
+          :src="cameraBaseUrl"
           alt="Camera Stream"
           class="camera-stream"
         />
+        <p v-else class="no-camera">기본 카메라가 설정되지 않았습니다.</p>
       </div>
 
       <!-- 3. 대시보드 리스트 -->
@@ -40,7 +42,16 @@
 </template>
 
 <script setup>
-// 필요한 로직은 필요 시 추가
+import { ref, onMounted } from 'vue';
+
+const cameraBaseUrl = ref('');
+
+onMounted(() => {
+  const savedCameraUrl = localStorage.getItem('cameraBaseUrl');
+  if (savedCameraUrl) {
+    cameraBaseUrl.value = savedCameraUrl;
+  }
+});
 </script>
 
 <style scoped>
@@ -77,6 +88,11 @@
   border-radius: 8px;
   border: 1px solid #ccc;
   object-fit: cover;
+}
+
+.no-camera {
+  color: #718096;
+  font-style: italic;
 }
 
 .scroll-list {

@@ -1,20 +1,50 @@
 <template>
-  <div id="app">
-    <!-- 로그인 상태에 따라 메뉴 표시/숨기기 -->
+  <div id="app" class="app-layout">
     <div v-if="isLoginPage">
       <LoginView @login-success="handleLoginSuccess" />
     </div>
-    <div v-else>
-      <!-- 로그인 후에는 상단 메뉴와 로그아웃 버튼 표시 -->
-      <nav class="navbar">
-        <router-link to="/home" class="nav-item">홈</router-link>
-        <router-link to="/camera" class="nav-item">카메라</router-link>
-        <router-link to="/dashboard" class="nav-item">대시보드</router-link>
-        <router-link to="/alerts" class="nav-item">알림</router-link>
-        <router-link to="/settings" class="nav-item">설정</router-link>
+    <div v-else class="main-layout">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          CamStone
+          <div class="sidebar-header-bg"></div>
+        </div>
+        <router-link
+          to="/home"
+          class="nav-item"
+          active-class="router-link-active"
+          >홈</router-link
+        >
+        <router-link
+          to="/camera"
+          class="nav-item"
+          active-class="router-link-active"
+          >카메라</router-link
+        >
+        <router-link
+          to="/dashboard"
+          class="nav-item"
+          active-class="router-link-active"
+          >대시보드</router-link
+        >
+        <router-link
+          to="/alerts"
+          class="nav-item"
+          active-class="router-link-active"
+          >알림</router-link
+        >
+        <router-link
+          to="/settings"
+          class="nav-item"
+          active-class="router-link-active"
+          >설정</router-link
+        >
+        <div class="sidebar-separator"></div>
         <button @click="logout" class="logout-btn">로그아웃</button>
-      </nav>
-      <router-view />
+      </aside>
+      <main class="content">
+        <router-view />
+      </main>
     </div>
   </div>
 </template>
@@ -30,19 +60,16 @@ const isLoginPage = ref(true);
 const router = useRouter();
 const route = useRoute();
 
-// 로그인 상태 확인
 onMounted(() => {
   const storedLoginStatus = localStorage.getItem('isLoggedIn');
   isLoggedIn.value = storedLoginStatus === 'true';
   updateLoginPageStatus(route.path);
 
-  // ✅ 로그인 상태일 때 로그인 경로로 접근하면 홈 페이지로 강제 이동
   if (isLoggedIn.value && (route.path === '/' || route.path === '/login')) {
     router.replace('/home');
   }
 });
 
-// 라우트 변경 시 로그인 페이지 여부 확인 및 리다이렉션
 watch(
   () => route.path,
   (newPath) => {
@@ -58,14 +85,12 @@ const updateLoginPageStatus = (path) => {
   isLoginPage.value = path === '/' || path === '/login';
 };
 
-// 로그인 성공 시 처리
 const handleLoginSuccess = () => {
   isLoggedIn.value = true;
   localStorage.setItem('isLoggedIn', 'true');
   router.push('/home');
 };
 
-// 로그아웃 처리
 const logout = () => {
   isLoggedIn.value = false;
   localStorage.removeItem('isLoggedIn');
@@ -74,15 +99,46 @@ const logout = () => {
 </script>
 
 <style scoped>
-/* 네비게이션 바 스타일 */
-.navbar {
+.app-layout {
   display: flex;
-  justify-content: space-around;
-  align-items: center;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-layout {
+  display: flex;
+  flex: 1;
+}
+
+.sidebar {
+  width: 240px;
   background-color: #2d3748;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 15px;
+  gap: 10px;
+  box-shadow: 2px 0 5px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.sidebar-header {
+  position: relative;
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #ffffff;
+  text-align: center;
+  margin-bottom: 20px;
   padding: 10px 0;
-  border-radius: 8px;
-  margin: 20px 0;
+}
+
+.sidebar-header-bg {
+  position: absolute;
+  bottom: -10px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(to right, #4fd1c5, #38b2ac);
+  border-radius: 2px;
 }
 
 .nav-item {
@@ -101,6 +157,18 @@ const logout = () => {
   transform: scale(1.05);
 }
 
+.router-link-active {
+  background-color: #4fd1c5;
+  color: white;
+  font-weight: bold;
+}
+
+.sidebar-separator {
+  height: 1px;
+  background-color: #4a5568;
+  margin: 15px 0;
+}
+
 .logout-btn {
   background-color: #e53e3e;
   color: white;
@@ -116,5 +184,11 @@ const logout = () => {
 .logout-btn:hover {
   background-color: #c53030;
   transform: scale(1.05);
+}
+
+.content {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
 }
 </style>

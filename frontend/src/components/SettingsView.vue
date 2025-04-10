@@ -39,14 +39,16 @@
 
     <!-- 카메라 기본 주소 설정 -->
     <div class="setting-group">
-      <label class="setting-label" for="cameraBaseUrl">기본 카메라 주소</label>
-      <input
-        id="cameraBaseUrl"
-        v-model="cameraBaseUrl"
-        type="text"
-        placeholder="예: http://192.168.0.7:81/stream"
-        class="setting-input"
-      />
+      <label class="setting-label" for="cameraBaseUrl">기본 카메라 선택</label>
+      <select id="cameraBaseUrl" v-model="cameraBaseUrl" class="setting-input">
+        <option
+          v-for="camera in dummyCameras"
+          :key="camera.id"
+          :value="camera.url"
+        >
+          {{ camera.name }} ({{ camera.url }})
+        </option>
+      </select>
     </div>
 
     <div class="actions">
@@ -58,13 +60,26 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 
 const notificationSetting = ref('all');
 const nickname = ref('');
 const password = ref('');
 const cameraBaseUrl = ref('');
 const message = ref('');
+
+// 더미 카메라 목록 (추후 백엔드 연동 예정)
+const dummyCameras = [
+  { id: 0, name: '카메라 기본', url: 'http://192.168.0.7:81/stream' },
+  { id: 1, name: '카메라 A', url: 'http://192.168.0.101:81/stream' },
+  { id: 2, name: '카메라 B', url: 'http://192.168.0.102:81/stream' },
+  { id: 3, name: '카메라 C', url: 'http://192.168.0.103:81/stream' },
+];
+
+onMounted(() => {
+  const savedCameraUrl = localStorage.getItem('cameraBaseUrl');
+  if (savedCameraUrl) cameraBaseUrl.value = savedCameraUrl;
+});
 
 const saveSettings = () => {
   message.value = `설정이 저장되었습니다.\n알림: ${
@@ -75,6 +90,7 @@ const saveSettings = () => {
   if (password.value) {
     message.value += `\n비밀번호가 변경되었습니다.`;
   }
+  localStorage.setItem('cameraBaseUrl', cameraBaseUrl.value);
 };
 </script>
 
