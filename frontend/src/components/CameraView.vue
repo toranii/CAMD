@@ -95,6 +95,14 @@ onMounted(() => {
   window.addEventListener('resize', () => {
     windowWidth.value = window.innerWidth;
   });
+
+  // localStorage에서 카메라 복원
+  const saved = localStorage.getItem('cameras');
+  if (saved) {
+    const parsed = JSON.parse(saved);
+    cameras.value = parsed;
+    nextId = parsed.length > 0 ? Math.max(...parsed.map((c) => c.id)) + 1 : 0;
+  }
 });
 
 const addCamera = () => {
@@ -102,7 +110,13 @@ const addCamera = () => {
     registrationError.value = true;
     return;
   }
-  cameras.value.push({ id: nextId++, url: newCameraUrl.value });
+
+  const newCamera = { id: nextId++, url: newCameraUrl.value };
+  cameras.value.push(newCamera);
+
+  // localstorage에 저장
+  localStorage.setItem('cameras', JSON.stringify(cameras.value));
+
   newCameraUrl.value = '';
   showRegisterBox.value = false;
   registrationError.value = false;
@@ -181,6 +195,9 @@ const confirmAction = () => {
     addCamera();
     return;
   }
+
+  // 삭제/수정 후에도 저장된 목록 갱신
+  localStorage.setItem('cameras', JSON.stringify(cameras.value));
 
   editMode.value = false;
   deleteMode.value = false;

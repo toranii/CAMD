@@ -35,25 +35,36 @@
 </template>
 
 <script setup>
-import { ref, defineEmits } from 'vue';
+import { ref } from 'vue';
+import axios from 'axios';
 import { useRouter } from 'vue-router';
-
-// 이벤트를 부모 컴포넌트로 전달하기 위한 정의
-const emit = defineEmits(['login-success']); // 부모 컴포넌트로 이벤트 전달
 
 const email = ref('');
 const password = ref('');
 const router = useRouter();
 
-const handleLogin = () => {
-  console.log('로그인 시도:', email.value, password.value);
-  // 로그인 성공 시
-  if (email.value && password.value) {
-    // 로그인 성공 시, 부모 컴포넌트(App.vue)로 이벤트를 보내 isLoggedIn을 true로 변경
-    emit('login-success'); // 부모 컴포넌트로 login-success 이벤트 발생
-    router.push('/home'); // 로그인 후 '/home' 페이지로 이동
-  } else {
-    alert('이메일과 비밀번호를 입력해주세요.');
+const handleLogin = async () => {
+  try {
+    const response = await axios.post('http://localhost:5000/api/auth/login', {
+      email: email.value.trim(),
+      password: password.value.trim(),
+    });
+
+    const token = response.data.token;
+    const user = response.data.user;
+
+    // 토큰을 로컬스토리지에 저장
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(user));
+
+    alert('로그인 성공!');
+    router.push('/home');
+  } catch (error) {
+    console.error(
+      '로그인 실패:',
+      error.response?.data?.message || error.message,
+    );
+    alert(error.response?.data?.message || '로그인 실패');
   }
 };
 </script>

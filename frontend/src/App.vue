@@ -60,9 +60,11 @@ const isLoginPage = ref(true);
 const router = useRouter();
 const route = useRoute();
 
+// ✅ 로그인 상태는 token 유무로 판단
+const token = localStorage.getItem('token');
+isLoggedIn.value = !!token;
+
 onMounted(() => {
-  const storedLoginStatus = localStorage.getItem('isLoggedIn');
-  isLoggedIn.value = storedLoginStatus === 'true';
   updateLoginPageStatus(route.path);
 
   if (isLoggedIn.value && (route.path === '/' || route.path === '/login')) {
@@ -87,14 +89,19 @@ const updateLoginPageStatus = (path) => {
 
 const handleLoginSuccess = () => {
   isLoggedIn.value = true;
-  localStorage.setItem('isLoggedIn', 'true');
+  // ✅ isLoggedIn 저장 불필요, token이 저장되었는지로 판단
   router.push('/home');
 };
 
 const logout = () => {
   isLoggedIn.value = false;
-  localStorage.removeItem('isLoggedIn');
-  router.push('/');
+
+  // ✅ 로그인 정보 제거
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+
+  // 로그인 페이지로 이동
+  router.push('/login');
 };
 </script>
 

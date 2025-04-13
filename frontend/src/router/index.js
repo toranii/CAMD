@@ -7,17 +7,32 @@ import AlertView from '../components/AlertView.vue';
 import SettingsView from '../components/SettingsView.vue';
 
 const routes = [
-  { path: '/', component: LoginView }, // 로그인 페이지를 메인으로 설정
-  { path: '/home', component: HomepageView },
-  { path: '/camera', component: CameraView },
-  { path: '/dashboard', component: DashboardView },
-  { path: '/alerts', component: AlertView },
-  { path: '/settings', component: SettingsView },
+  { path: '/', component: LoginView },
+  { path: '/home', component: HomepageView, meta: { requiresAuth: true } },
+  { path: '/camera', component: CameraView, meta: { requiresAuth: true } },
+  {
+    path: '/dashboard',
+    component: DashboardView,
+    meta: { requiresAuth: true },
+  },
+  { path: '/alerts', component: AlertView, meta: { requiresAuth: true } },
+  { path: '/settings', component: SettingsView, meta: { requiresAuth: true } },
 ];
 
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
+  history: createWebHistory(),
   routes,
+});
+
+// 로그인 안한 사용자는 login으로 리디렉션
+router.beforeEach((to, from, next) => {
+  const token = localStorage.getItem('token');
+
+  if (to.meta.requiresAuth && !token) {
+    next('/login');
+  } else {
+    next();
+  }
 });
 
 export default router;
