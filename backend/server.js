@@ -44,3 +44,17 @@ const PORT = 5000;
 app.listen(PORT, () => {
   console.log(`서버가 http://localhost:${PORT} 에서 실행 중`);
 });
+
+// ✅ ESP32 장치 토큰 인증용 API
+app.post('/api/verify_token', (req, res) => {
+  const { token } = req.body;
+
+  // 실제 환경에서는 이 토큰 값을 DB에서 조회하거나 암호화 검증하는 식으로 개선 가능
+  const VALID_TOKEN = 'esp32_secure_token_123';
+
+  if (token === VALID_TOKEN) {
+    res.json({ success: true });
+  } else {
+    res.status(401).json({ success: false, message: 'Invalid token' });
+  }
+});
