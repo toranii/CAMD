@@ -2,12 +2,12 @@ const express = require('express');
 const cors = require('cors');
 const db = require('./db');
 const authRoutes = require('./routes/auth');
+const loginLogsRoutes = require('./routes/login-logs');
 require('dotenv').config();
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use('/api/auth', authRoutes);
 
 // ✅ 기본 경로 추가 (Cannot GET / 오류 해결)
 app.get('/', (req, res) => {
@@ -16,6 +16,8 @@ app.get('/', (req, res) => {
 
 // 로그인 라우트 등록
 app.use('/api/auth', authRoutes);
+// 로그인 로그 라우트 등록
+app.use('/api/auth', loginLogsRoutes);
 
 // ✅ 사용자 조회 API (db.getConnection 사용)
 app.get('/users', (req, res) => {
