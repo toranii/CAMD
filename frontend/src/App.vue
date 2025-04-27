@@ -60,15 +60,18 @@ const isLoginPage = ref(true);
 const router = useRouter();
 const route = useRoute();
 
-// ✅ 로그인 상태는 token 유무로 판단
-const token = localStorage.getItem('token');
-isLoggedIn.value = !!token;
+const checkLoginStatus = () => {
+  const token = localStorage.getItem('token');
+  isLoggedIn.value = !!token;
+};
 
+// ✅ 로그인 상태 확인 + 현재 페이지 유지
 onMounted(() => {
+  checkLoginStatus();
   updateLoginPageStatus(route.path);
 
-  if (isLoggedIn.value && (route.path === '/' || route.path === '/login')) {
-    router.replace('/home');
+  if (!isLoggedIn.value && route.path !== '/' && route.path !== '/login') {
+    router.replace('/login');
   }
 });
 
@@ -76,31 +79,25 @@ watch(
   () => route.path,
   (newPath) => {
     updateLoginPageStatus(newPath);
-
-    if (isLoggedIn.value && (newPath === '/' || newPath === '/login')) {
-      router.replace('/home');
-    }
   },
 );
 
+// ✅ 현재 페이지가 로그인 페이지인지 여부 업데이트
 const updateLoginPageStatus = (path) => {
   isLoginPage.value = path === '/' || path === '/login';
 };
 
+// ✅ 로그인 성공 시 처리
 const handleLoginSuccess = () => {
   isLoggedIn.value = true;
-  // ✅ isLoggedIn 저장 불필요, token이 저장되었는지로 판단
   router.push('/home');
 };
 
+// ✅ 로그아웃 시 처리
 const logout = () => {
   isLoggedIn.value = false;
-
-  // ✅ 로그인 정보 제거
   localStorage.removeItem('token');
   localStorage.removeItem('user');
-
-  // 로그인 페이지로 이동
   router.push('/login');
 };
 </script>
