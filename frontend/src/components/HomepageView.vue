@@ -5,28 +5,43 @@
       <!-- 1. 프로필 박스 -->
       <div class="box profile-box">
         <h2>프로필</h2>
-        <p>사용자 이름: 김현수</p>
-        <p>역할: 관리자</p>
-        <p>이메일: Raustn@CAMD_.git</p>
+        <p>사용자 이름 : 김성재</p>
+        <p>역할 : 관리자</p>
+        <p>이메일 : 1@1</p>
       </div>
 
       <!-- 2. 카메라 박스 -->
       <div class="box camera-box">
         <h2>카메라</h2>
-        <img
-          v-if="cameraBaseUrl"
-          :src="cameraBaseUrl"
-          alt="Camera Stream"
-          class="camera-stream"
-        />
+        <div v-if="cameraBaseUrl">
+          <div v-if="isCameraLoading" class="loading-text">
+            카메라 로딩 중...
+          </div>
+          <img
+            v-show="!isCameraLoading"
+            :src="cameraBaseUrl"
+            alt="Camera Stream"
+            class="camera-stream"
+            @load="handleCameraLoad"
+            @error="handleCameraError"
+            ref="cameraImage"
+          />
+          <p v-if="cameraLoadError" class="error-text">카메라 로딩 실패</p>
+        </div>
         <p v-else class="no-camera">기본 카메라가 설정되지 않았습니다.</p>
       </div>
 
       <!-- 3. 대시보드 리스트 -->
       <div class="box dashboard-box">
         <h2>대시보드</h2>
-        <ul class="scroll-list">
-          <li v-for="i in 10" :key="i">대시보드 항목 {{ i }}</li>
+        <ul
+          class="scroll-list"
+          :class="{ 'scroll-enabled': dashboardLogs.length > 5 }"
+        >
+          <li v-for="(log, index) in dashboardLogs" :key="index">
+            [{{ log.email }}] {{ formatLoginTime(log.login_time) }} - 로그인
+            시도 ({{ log.success ? 'O' : 'X' }})
+          </li>
         </ul>
       </div>
 
@@ -42,16 +57,63 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
+import axios from 'axios';
 
 const cameraBaseUrl = ref('');
+const isCameraLoading = ref(true);
+const cameraLoadError = ref(false);
+const dashboardLogs = ref([]);
+let cameraImage = null;
+
+const fetchDashboardLogs = async () => {
+  try {
+    const response = await axios.get(
+      'http://localhost:5000/api/auth/login-logs',
+    );
+    dashboardLogs.value = response.data.slice(0, 10); // 최근 10개만
+  } catch (error) {
+    console.error('대시보드 데이터 불러오기 실패:', error);
+  }
+};
 
 onMounted(() => {
+  // 카메라 기본 주소 로드
   const savedCameraUrl = localStorage.getItem('cameraBaseUrl');
   if (savedCameraUrl) {
     cameraBaseUrl.value = savedCameraUrl;
   }
+
+  // 대시보드 로그 불러오기
+  fetchDashboardLogs();
 });
+
+const handleCameraLoad = () => {
+  isCameraLoading.value = false;
+};
+
+const handleCameraError = () => {
+  isCameraLoading.value = false;
+  cameraLoadError.value = true;
+};
+
+onBeforeUnmount(() => {
+  if (cameraImage) {
+    cameraImage.onload = null;
+    cameraImage.onerror = null;
+  }
+});
+
+const formatLoginTime = (timeString) => {
+  const date = new Date(timeString);
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  const ss = String(date.getSeconds()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd} / ${hh}:${min}:${ss}`;
+};
 </script>
 
 <style scoped>
@@ -104,5 +166,21 @@ onMounted(() => {
 
 .scroll-list li {
   margin-bottom: 8px;
+}
+
+.scroll-enabled {
+  overflow-y: scroll;
+}
+
+.loading-text {
+  text-align: center;
+  color: #718096;
+  margin-top: 20px;
+}
+
+.error-text {
+  text-align: center;
+  color: #e53e3e;
+  margin-top: 20px;
 }
 </style>
