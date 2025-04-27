@@ -2,50 +2,55 @@
   <div class="home-container">
     <h1 class="title">🏠 홈 화면</h1>
     <div class="grid-layout">
-      <!-- 1. 프로필 박스 -->
-      <div class="box profile-box">
-        <h2>프로필</h2>
-        <p>사용자 이름 : 김성재</p>
-        <p>역할 : 관리자</p>
-        <p>이메일 : 1@1</p>
-      </div>
-
-      <!-- 2. 카메라 박스 -->
+      <!-- 1. 카메라 박스 -->
       <div class="box camera-box">
         <h2>카메라</h2>
-        <div v-if="cameraBaseUrl">
-          <div v-if="isCameraLoading" class="loading-text">
-            카메라 로딩 중...
-          </div>
-          <img
-            v-show="!isCameraLoading"
-            :src="cameraBaseUrl"
-            alt="Camera Stream"
-            class="camera-stream"
-            @load="handleCameraLoad"
-            @error="handleCameraError"
-            ref="cameraImage"
-          />
-          <p v-if="cameraLoadError" class="error-text">카메라 로딩 실패</p>
-        </div>
+        <img
+          v-if="cameraBaseUrl"
+          :src="cameraBaseUrl"
+          alt="Camera Stream"
+          class="camera-stream"
+        />
         <p v-else class="no-camera">기본 카메라가 설정되지 않았습니다.</p>
       </div>
 
-      <!-- 3. 대시보드 리스트 -->
+      <!-- 2. 대시보드 박스 -->
       <div class="box dashboard-box">
         <h2>대시보드</h2>
-        <ul
-          class="scroll-list"
-          :class="{ 'scroll-enabled': dashboardLogs.length > 5 }"
-        >
-          <li v-for="(log, index) in dashboardLogs" :key="index">
-            [{{ log.email }}] {{ formatLoginTime(log.login_time) }} - 로그인
-            시도 ({{ log.success ? 'O' : 'X' }})
-          </li>
-        </ul>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 40px">번호</th>
+                <th style="width: 160px">시간</th>
+                <th style="width: 120px">IP 주소</th>
+                <th style="width: 150px">이메일</th>
+                <th style="min-width: 150px">내용</th>
+                <th style="width: 40px">결과</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(log, index) in latestLogs" :key="index">
+                <td>{{ index + 1 }}</td>
+                <td>{{ formatLoginTime(log.login_time) }}</td>
+                <td>{{ log.ip_address }}</td>
+                <td>{{ log.email }}</td>
+                <td>로그인 시도</td>
+                <td
+                  :class="{
+                    success: log.success === 1,
+                    failure: log.success !== 1,
+                  }"
+                >
+                  {{ log.success === 1 ? 'O' : 'X' }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <!-- 4. 알림 리스트 -->
+      <!-- 3. 알림 리스트 -->
       <div class="box alert-box">
         <h2>알림</h2>
         <ul class="scroll-list">
@@ -57,51 +62,34 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 
 const cameraBaseUrl = ref('');
-const isCameraLoading = ref(true);
-const cameraLoadError = ref(false);
-const dashboardLogs = ref([]);
-let cameraImage = null;
-
-const fetchDashboardLogs = async () => {
-  try {
-    const response = await axios.get(
-      'http://localhost:5000/api/auth/login-logs',
-    );
-    dashboardLogs.value = response.data.slice(0, 10); // 최근 10개만
-  } catch (error) {
-    console.error('대시보드 데이터 불러오기 실패:', error);
-  }
-};
+const logs = ref([]);
 
 onMounted(() => {
-  // 카메라 기본 주소 로드
   const savedCameraUrl = localStorage.getItem('cameraBaseUrl');
   if (savedCameraUrl) {
     cameraBaseUrl.value = savedCameraUrl;
   }
 
-  // 대시보드 로그 불러오기
-  fetchDashboardLogs();
+  fetchLogs();
 });
 
-const handleCameraLoad = () => {
-  isCameraLoading.value = false;
-};
-
-const handleCameraError = () => {
-  isCameraLoading.value = false;
-  cameraLoadError.value = true;
-};
-
-onBeforeUnmount(() => {
-  if (cameraImage) {
-    cameraImage.onload = null;
-    cameraImage.onerror = null;
+const fetchLogs = async () => {
+  try {
+    const response = await axios.get(
+      'http://localhost:5000/api/auth/login-logs',
+    );
+    logs.value = response.data;
+  } catch (error) {
+    console.error('로그 가져오기 실패:', error);
   }
+};
+
+const latestLogs = computed(() => {
+  return logs.value.slice(0, 10);
 });
 
 const formatLoginTime = (timeString) => {
@@ -112,37 +100,61 @@ const formatLoginTime = (timeString) => {
   const hh = String(date.getHours()).padStart(2, '0');
   const min = String(date.getMinutes()).padStart(2, '0');
   const ss = String(date.getSeconds()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd} / ${hh}:${min}:${ss}`;
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
 };
 </script>
 
 <style scoped>
 .home-container {
   padding: 20px;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: auto;
 }
 
 .title {
-  font-size: 2rem;
+  font-size: 2.5rem;
   font-weight: bold;
   text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 30px;
 }
 
 .grid-layout {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(2, auto);
-  gap: 20px;
+  grid-template-areas:
+    'camera camera'
+    'dashboard alert';
+  grid-template-columns: 2fr 1fr;
+  gap: 25px;
+}
+
+.camera-box {
+  grid-area: camera;
+}
+
+.dashboard-box {
+  grid-area: dashboard;
+}
+
+.alert-box {
+  grid-area: alert;
+}
+
+@media (max-width: 1200px) {
+  .grid-layout {
+    grid-template-areas:
+      'camera'
+      'dashboard'
+      'alert';
+    grid-template-columns: 1fr;
+  }
 }
 
 .box {
   border: 1px solid #ccc;
   border-radius: 12px;
-  padding: 20px;
+  padding: 25px;
   background-color: #f9f9f9;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 
 .camera-stream {
@@ -157,8 +169,43 @@ const formatLoginTime = (timeString) => {
   font-style: italic;
 }
 
+.table-wrapper {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+table th,
+table td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+table th {
+  background-color: #f4f4f4;
+}
+
+.success {
+  color: #38a169;
+  font-weight: bold;
+}
+
+.failure {
+  color: #e53e3e;
+  font-weight: bold;
+}
+
 .scroll-list {
-  max-height: 160px;
+  max-height: 300px;
   overflow-y: auto;
   padding-left: 20px;
   list-style: disc;
@@ -166,21 +213,6 @@ const formatLoginTime = (timeString) => {
 
 .scroll-list li {
   margin-bottom: 8px;
-}
-
-.scroll-enabled {
-  overflow-y: scroll;
-}
-
-.loading-text {
-  text-align: center;
-  color: #718096;
-  margin-top: 20px;
-}
-
-.error-text {
-  text-align: center;
-  color: #e53e3e;
-  margin-top: 20px;
+  font-size: 1rem;
 }
 </style>

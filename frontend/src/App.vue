@@ -5,10 +5,18 @@
     </div>
     <div v-else class="main-layout">
       <aside class="sidebar">
-        <div class="sidebar-header">
-          CamStone
-          <div class="sidebar-header-bg"></div>
+        <div class="sidebar-header">CamStone</div>
+
+        <!-- ✅ 프로필 정보 추가 -->
+        <div class="profile-info">
+          <p><strong>이름:</strong> 김수재</p>
+          <p><strong>접속 IP:</strong> 127.0.0.1</p>
+          <p><strong>이메일:</strong> 1@1</p>
+          <p><strong>등록 카메라:</strong> {{ cameraCount }}대</p>
         </div>
+        <div class="sidebar-separator"></div>
+
+        <!-- 메뉴 -->
         <router-link
           to="/home"
           class="nav-item"
@@ -39,9 +47,11 @@
           active-class="router-link-active"
           >설정</router-link
         >
+
         <div class="sidebar-separator"></div>
         <button @click="logout" class="logout-btn">로그아웃</button>
       </aside>
+
       <main class="content">
         <router-view />
       </main>
@@ -56,6 +66,7 @@ import { useRouter, useRoute } from 'vue-router';
 
 const isLoggedIn = ref(false);
 const isLoginPage = ref(true);
+const cameraCount = ref(2); // ✅ 등록된 카메라 대수 (임시 2대)
 
 const router = useRouter();
 const route = useRoute();
@@ -65,7 +76,6 @@ const checkLoginStatus = () => {
   isLoggedIn.value = !!token;
 };
 
-// ✅ 로그인 상태 확인 + 현재 페이지 유지
 onMounted(() => {
   checkLoginStatus();
   updateLoginPageStatus(route.path);
@@ -82,18 +92,15 @@ watch(
   },
 );
 
-// ✅ 현재 페이지가 로그인 페이지인지 여부 업데이트
 const updateLoginPageStatus = (path) => {
   isLoginPage.value = path === '/' || path === '/login';
 };
 
-// ✅ 로그인 성공 시 처리
 const handleLoginSuccess = () => {
   isLoggedIn.value = true;
   router.push('/home');
 };
 
-// ✅ 로그아웃 시 처리
 const logout = () => {
   isLoggedIn.value = false;
   localStorage.removeItem('token');
@@ -145,9 +152,24 @@ const logout = () => {
   bottom: -10px;
   left: 0;
   width: 100%;
-  height: 2px;
+  height: 1px;
   background: linear-gradient(to right, #4fd1c5, #38b2ac);
-  border-radius: 2px;
+  border-radius: 1px;
+}
+
+/* ✅ 프로필 정보 스타일 */
+.profile-info {
+  background-color: #1a202c;
+  border: 1px solid #4a5568;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  color: #edf2f7;
+  font-size: 0.9rem;
+}
+
+.profile-info p {
+  margin: 4px 0;
 }
 
 .nav-item {
@@ -174,7 +196,7 @@ const logout = () => {
 
 .sidebar-separator {
   height: 1px;
-  background-color: #4a5568;
+  background: linear-gradient(to right, #4fd1c5, #38b2ac);
   margin: 15px 0;
 }
 

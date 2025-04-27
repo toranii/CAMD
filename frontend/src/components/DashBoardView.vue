@@ -47,19 +47,21 @@
       <table>
         <thead>
           <tr>
-            <th>시간</th>
-            <th>IP 주소</th>
-            <th>이메일</th>
-            <th class="event-col">내용</th>
-            <th>결과</th>
+            <th class="narrow">번호</th>
+            <th class="wide">시간</th>
+            <th class="medium">IP 주소</th>
+            <th class="medium">이메일</th>
+            <th class="wide">내용</th>
+            <th class="narrow">결과</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(log, index) in filteredAndSortedLogs" :key="index">
+          <tr v-for="(log, index) in paginatedLogs" :key="index">
+            <td>{{ (currentPage - 1) * itemsPerPage + index + 1 }}</td>
             <td>{{ formatLoginTime(log.login_time) }}</td>
             <td>{{ log.ip_address }}</td>
             <td>{{ log.email }}</td>
-            <td class="event-content">로그인 시도</td>
+            <td>로그인 시도</td>
             <td
               :class="{
                 success: log.success === 1,
@@ -72,6 +74,18 @@
         </tbody>
       </table>
     </div>
+
+    <!-- 페이지네이션 -->
+    <div class="pagination">
+      <button
+        v-for="page in totalPages"
+        :key="page"
+        :class="{ active: page === currentPage }"
+        @click="currentPage = page"
+      >
+        {{ page }}
+      </button>
+    </div>
   </div>
 </template>
 
@@ -79,19 +93,19 @@
 import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 
-// 📌 상태 변수 선언
 const logs = ref([]);
 const filterField = ref('date');
 const filterKeyword = ref('');
 const sortOption = ref('desc');
+const currentPage = ref(1);
+const itemsPerPage = 20;
 
-// 📌 서버에서 로그인 로그 가져오기
 const fetchLogs = async () => {
   try {
     const response = await axios.get(
       'http://localhost:5000/api/auth/login-logs',
     );
-    logs.value = response.data;
+    logs.value = response.data.slice(0, 200);
   } catch (error) {
     console.error('로그 데이터 가져오기 실패:', error);
   }
@@ -101,7 +115,6 @@ onMounted(() => {
   fetchLogs();
 });
 
-// 📌 필터 및 정렬 처리
 const filteredAndSortedLogs = computed(() => {
   let filtered = logs.value;
 
@@ -134,12 +147,21 @@ const filteredAndSortedLogs = computed(() => {
   return filtered;
 });
 
-// 📌 검색어 초기화
+const paginatedLogs = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  return filteredAndSortedLogs.value.slice(start, end);
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredAndSortedLogs.value.length / itemsPerPage);
+});
+
 const resetFilterKeyword = () => {
   filterKeyword.value = '';
+  currentPage.value = 1;
 };
 
-// 📌 시간 포맷 변경 함수 (yyyy-mm-dd / hh:mm:ss)
 const formatLoginTime = (timeString) => {
   const date = new Date(timeString);
   const yyyy = date.getFullYear();
@@ -151,7 +173,6 @@ const formatLoginTime = (timeString) => {
   return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
 };
 
-// 📌 날짜(yyyy-mm-dd) 포맷만 따로 뽑는 함수
 const formatDateOnly = (timeString) => {
   const date = new Date(timeString);
   const yyyy = date.getFullYear();
@@ -164,7 +185,7 @@ const formatDateOnly = (timeString) => {
 <style scoped>
 .dashboard-container {
   padding: 2rem;
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   border: 1px solid #ccc;
   border-radius: 8px;
@@ -199,46 +220,32 @@ const formatDateOnly = (timeString) => {
   overflow-x: auto;
 }
 
-/* 표 스타일 */
 table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;
+  font-size: 0.95rem;
 }
 
 table th,
 table td {
   border: 1px solid #ddd;
-  padding: 10px;
+  padding: 8px;
   text-align: center;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.event-col,
-.event-content {
-  max-width: 300px;
-  white-space: nowrap;
-  overflow-x: auto;
-  overflow-y: hidden;
-  text-align: center;
+th.narrow {
+  width: 40px;
 }
 
-table th {
-  background-color: #f4f4f4;
-  font-weight: bold;
+th.medium {
+  width: 120px;
 }
 
-table tr:nth-child(even) {
-  background-color: #f9f9f9;
+th.wide {
+  min-width: 180px;
 }
 
-table tr:hover {
-  background-color: #f1f1f1;
-}
-
-/* 성공/실패 색상 */
 .success {
   color: #38a169;
   font-weight: bold;
@@ -247,5 +254,34 @@ table tr:hover {
 .failure {
   color: #e53e3e;
   font-weight: bold;
+}
+
+.pagination {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.pagination button {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid #ccc;
+  background-color: white;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.pagination button.active {
+  background-color: #4fd1c5;
+  color: white;
+  font-weight: bold;
+}
+
+@media (max-width: 768px) {
+  table,
+  table th,
+  table td {
+    font-size: 0.8rem;
+  }
 }
 </style>
