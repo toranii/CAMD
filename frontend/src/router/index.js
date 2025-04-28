@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import LoginView from '../components/LoginView.vue';
+import SignupForm from '../components/SignupForm.vue';
 import HomepageView from '../components/HomepageView.vue';
 import CameraView from '../components/CameraView.vue';
 import DashboardView from '../components/DashBoardView.vue';
@@ -8,6 +9,7 @@ import SettingsView from '../components/SettingsView.vue';
 
 const routes = [
   { path: '/', component: LoginView },
+  { path: '/signup', component: SignupForm },
   { path: '/home', component: HomepageView, meta: { requiresAuth: true } },
   { path: '/camera', component: CameraView, meta: { requiresAuth: true } },
   {

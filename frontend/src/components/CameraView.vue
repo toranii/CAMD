@@ -78,6 +78,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import Swal from 'sweetalert2';
 
 let nextId = 0;
 const cameras = ref([]);
@@ -186,17 +187,30 @@ const confirmAction = () => {
     cameras.value = cameras.value.filter(
       (camera) => !selectedCameras.value.includes(camera.id),
     );
-    alert('삭제되었습니다.');
+
+    Swal.fire({
+      // ✅ SweetAlert2로 변경
+      title: '삭제 완료',
+      text: '카메라가 삭제되었습니다.',
+      icon: 'success',
+      confirmButtonText: '확인',
+    });
+
     selectedCameras.value = [];
   } else if (editMode.value) {
-    alert(`카메라 수정되었습니다.`);
+    Swal.fire({
+      // ✅ SweetAlert2로 변경
+      title: '수정 완료',
+      text: '카메라가 수정되었습니다.',
+      icon: 'success',
+      confirmButtonText: '확인',
+    });
     selectedCamera.value = null;
   } else if (showRegisterBox.value) {
     addCamera();
     return;
   }
 
-  // 삭제/수정 후에도 저장된 목록 갱신
   localStorage.setItem('cameras', JSON.stringify(cameras.value));
 
   editMode.value = false;

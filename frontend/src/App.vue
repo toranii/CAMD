@@ -1,13 +1,14 @@
 <template>
   <div id="app" class="app-layout">
-    <div v-if="isLoginPage">
-      <LoginView @login-success="handleLoginSuccess" />
+    <div v-if="isLoginPage || isSignupPage">
+      <LoginView v-if="isLoginPage" @login-success="handleLoginSuccess" />
+      <router-view v-else />
     </div>
     <div v-else class="main-layout">
       <aside class="sidebar">
         <div class="sidebar-header">CamStone</div>
 
-        <!-- ✅ 프로필 정보 추가 -->
+        <!-- ✅ 프로필 정보 -->
         <div class="profile-info">
           <p><strong>이름:</strong> 김수재</p>
           <p><strong>접속 IP:</strong> 127.0.0.1</p>
@@ -61,52 +62,86 @@
 
 <script setup>
 import { ref, onMounted, watch } from 'vue';
-import LoginView from './components/LoginView.vue';
 import { useRouter, useRoute } from 'vue-router';
+import LoginView from './components/LoginView.vue';
+import Swal from 'sweetalert2';
 
 const isLoggedIn = ref(false);
 const isLoginPage = ref(true);
-const cameraCount = ref(2); // ✅ 등록된 카메라 대수 (임시 2대)
+const isSignupPage = ref(false);
+const cameraCount = ref(2);
 
 const router = useRouter();
 const route = useRoute();
 
+// ✅ 로그인 상태 체크
 const checkLoginStatus = () => {
   const token = localStorage.getItem('token');
   isLoggedIn.value = !!token;
 };
 
+// ✅ 로그인/회원가입 페이지 구분
+const updateSignPageStatus = (path) => {
+  isLoginPage.value = path === '/' || path === '/login';
+  isSignupPage.value = path === '/signup';
+};
+
+// ✅ 라우터 가드
+const applyRouteGuard = (path) => {
+  if (isLoggedIn.value) {
+    if (path === '/' || path === '/login' || path === '/signup') {
+      router.replace('/home');
+    }
+  } else {
+    if (!(path === '/' || path === '/login' || path === '/signup')) {
+      router.replace('/login');
+    }
+  }
+};
+
+// ✅ 로그인 성공 시 처리
+const handleLoginSuccess = async () => {
+  localStorage.setItem('token', 'dummy_token'); // 토큰 저장
+  isLoggedIn.value = true;
+  await router.push('/home');
+};
+
+// ✅ 로그아웃
+const logout = () => {
+  Swal.fire({
+    title: '로그아웃 하시겠습니까?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#3085d6', // 예 버튼 색상
+    cancelButtonColor: '#d33', // 아니오 버튼 색상
+    confirmButtonText: '예',
+    cancelButtonText: '아니오',
+  }).then((result) => {
+    if (result.isConfirmed) {
+      isLoggedIn.value = false;
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      router.push('/login');
+    }
+  });
+};
+
+// ✅ 최초 로딩 시 처리
 onMounted(() => {
   checkLoginStatus();
-  updateLoginPageStatus(route.path);
-
-  if (!isLoggedIn.value && route.path !== '/' && route.path !== '/login') {
-    router.replace('/login');
-  }
+  updateSignPageStatus(route.path);
+  applyRouteGuard(route.path);
 });
 
+// ✅ 경로 변경 감시
 watch(
   () => route.path,
   (newPath) => {
-    updateLoginPageStatus(newPath);
+    checkLoginStatus();
+    updateSignPageStatus(newPath);
+    applyRouteGuard(newPath);
   },
 );
-
-const updateLoginPageStatus = (path) => {
-  isLoginPage.value = path === '/' || path === '/login';
-};
-
-const handleLoginSuccess = () => {
-  isLoggedIn.value = true;
-  router.push('/home');
-};
-
-const logout = () => {
-  isLoggedIn.value = false;
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  router.push('/login');
-};
 </script>
 
 <style scoped>
@@ -147,17 +182,6 @@ const logout = () => {
   padding: 10px 0;
 }
 
-.sidebar-header-bg {
-  position: absolute;
-  bottom: -10px;
-  left: 0;
-  width: 100%;
-  height: 1px;
-  background: linear-gradient(to right, #4fd1c5, #38b2ac);
-  border-radius: 1px;
-}
-
-/* ✅ 프로필 정보 스타일 */
 .profile-info {
   background-color: #1a202c;
   border: 1px solid #4a5568;
