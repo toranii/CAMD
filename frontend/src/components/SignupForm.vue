@@ -9,7 +9,13 @@
     <form @submit.prevent="handleSignup" class="form-layout">
       <div class="form-group">
         <label>이름</label>
-        <input v-model="name" type="text" required class="input-box" />
+        <input
+          v-model="name"
+          type="text"
+          required
+          class="input-box"
+          @input="sanitizeName"
+        />
       </div>
 
       <div class="form-group">
@@ -36,7 +42,7 @@
             required
             class="input-box"
             placeholder="example@domain.com"
-            @input="formatEmail"
+            @input="sanitizeEmail"
           />
         </div>
         <p v-if="emailMessage" :class="emailMessageClass">{{ emailMessage }}</p>
@@ -161,9 +167,13 @@ const formatPhone = () => {
   validatePhone();
 };
 
-const formatEmail = () => {
-  email.value = email.value.toLowerCase();
+const sanitizeEmail = () => {
+  email.value = email.value.toLowerCase().replace(/[<>'"\\/%;&=?!]/g, '');
   validateEmail();
+};
+
+const sanitizeName = () => {
+  name.value = name.value.replace(/[<>'"\\/%;&=?!]/g, '');
 };
 
 const validateEmail = () => {
@@ -214,6 +224,10 @@ const togglePasswordVisibility = () => {
   passwordVisible.value = !passwordVisible.value;
 };
 </script>
+
+<style scoped>
+/* 스타일 동일, 생략 */
+</style>
 
 <style scoped>
 .signup-container {
