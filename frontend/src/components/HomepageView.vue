@@ -68,12 +68,17 @@ import axios from 'axios';
 const cameraBaseUrl = ref('');
 const logs = ref([]);
 
-onMounted(() => {
-  const savedCameraUrl = localStorage.getItem('cameraBaseUrl');
-  if (savedCameraUrl) {
-    cameraBaseUrl.value = savedCameraUrl;
+onMounted(async () => {
+  try {
+    const res = await axios.get('http://localhost:5000/api/device/list');
+    if (res.data.success && res.data.devices.length > 0) {
+      // 가장 첫 번째 등록된 카메라 사용 (혹은 기본값 지정 로직 커스터마이징 가능)
+      const cam = res.data.devices[0];
+      cameraBaseUrl.value = `http://${cam.ip_address}:82/stream`;
+    }
+  } catch (err) {
+    console.error('카메라 목록 불러오기 실패', err);
   }
-
   fetchLogs();
 });
 

@@ -72,4 +72,117 @@ router.post('/login', (req, res) => {
   });
 });
 
+// POST /api/auth/verify_device
+router.post('/verify_device', (req, res) => {
+  const { token } = req.body;
+  console.log('[DEVICE VERIFY] 요청 →', token);
+
+  db.getConnection((err, conn) => {
+    if (err) {
+      console.error('DB 연결 오류:', err);
+      return res.status(500).send('DB 연결 오류');
+    }
+
+    // 토큰이 devices 테이블에 존재하는지 확인
+    const sql = 'SELECT * FROM devices WHERE token = ?';
+    conn.query(sql, [token], (queryErr, rows) => {
+      conn.release();
+
+      if (queryErr) {
+        console.error('쿼리 오류:', queryErr);
+        return res.status(500).send('서버 내부 오류');
+      }
+
+      if (rows.length === 0) {
+        return res.status(401).json({ message: '유효하지 않은 토큰' });
+      }
+
+      // 인증 성공
+      return res.json({ message: '인증 성공', device: rows[0] });
+    });
+  });
+});
+
+// POST /api/auth/register_device
+router.post('/register_device', (req, res) => {
+  const { device_name } = req.body;
+  if (!device_name) {
+    return res.status(400).json({ message: 'device_name이 필요합니다.' });
+  }
+
+  // 랜덤한 토큰 생성 (32자리)
+  const generateToken = () => {
+    const chars =
+      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let token = '';
+    for (let i = 0; i < 32; i++) {
+      token += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return token;
+  };
+
+  const newToken = generateToken();
+  console.log(
+    `[DEVICE REGISTER] 디바이스 등록 요청 → 이름: ${device_name}, 토큰: ${newToken}`,
+  );
+
+  db.getConnection((err, conn) => {
+    if (err) {
+      console.error('DB 연결 오류:', err);
+      return res.status(500).send('DB 연결 오류');
+    }
+
+    // devices 테이블에 등록
+    const insertSql = 'INSERT INTO devices (device_name, token) VALUES (?, ?)';
+    conn.query(insertSql, [device_name, newToken], (queryErr, result) => {
+      conn.release();
+
+      if (queryErr) {
+        console.error('쿼리 오류:', queryErr);
+        return res.status(500).send('서버 내부 오류');
+      }
+
+      return res.json({
+        message: '디바이스 등록 성공',
+        device: {
+          id: result.insertId,
+          device_name,
+          token: newToken,
+        },
+      });
+    });
+  });
+});
+
+// POST /api/auth/verify_device
+router.post('/verify_device', (req, res) => {
+  const { token } = req.body;
+  console.log('[DEVICE VERIFY] 요청 →', token);
+
+  db.getConnection((err, conn) => {
+    if (err) {
+      console.error('DB 연결 오류:', err);
+      return res.status(500).send('DB 연결 오류');
+    }
+
+    // devices 테이블에서 토큰 조회
+    const sql = 'SELECT * FROM devices WHERE token = ?';
+    conn.query(sql, [token], (queryErr, rows) => {
+      conn.release();
+
+      if (queryErr) {
+        console.error('쿼리 오류:', queryErr);
+        return res.status(500).send('서버 내부 오류');
+      }
+
+      if (rows.length === 0) {
+        return res.status(401).json({ message: '유효하지 않은 토큰' });
+      }
+
+      // 인증 성공
+      return res.json({ message: '인증 성공', device: rows[0] });
+    });
+  });
+});
+
 module.exports = router;

@@ -24,3 +24,22 @@ CREATE TABLE `login_logs` (
   KEY `fk_logs_user` (`user_id`),
   CONSTRAINT `fk_logs_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+CREATE TABLE devices (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  device_name VARCHAR(100) NOT NULL,
+  token VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 4. 기본 디바이스 등록 (예시)
+INSERT INTO `devices` (`device_name`, `token`) 
+VALUES ('MyESP32CAM', 'esp32_secure_token_123');
+
+SELECT * FROM devices;
+
+ALTER TABLE devices ADD COLUMN mac_address VARCHAR(50);
+
+ALTER TABLE devices MODIFY device_name VARCHAR(100) DEFAULT 'ESP32CAM';
+
+ALTER TABLE devices MODIFY device_name VARCHAR(100) NULL;

@@ -1,6 +1,6 @@
 <template>
   <div class="camera-container">
-    <h2 class="page-title">🎥 카메라</h2>
+    <h2 class="page-title">📷 카메라</h2>
 
     <div class="edit-control-box button-group">
       <template v-if="!editMode && !showRegisterBox">
@@ -29,7 +29,7 @@
           :disabled="
             (deleteMode && selectedCameras.length === 0) ||
             (editMode && !deleteMode && selectedCamera === null) ||
-            (showRegisterBox && newCameraUrl.trim() === '')
+            (showRegisterBox && newCameraIp.trim() === '')
           "
         >
           확인
@@ -42,12 +42,12 @@
 
     <div v-if="showRegisterBox" class="register-box">
       <input
-        v-model="newCameraUrl"
+        v-model="newCameraIp"
         type="text"
-        placeholder="예: http://192.168.0.100/"
+        placeholder="ESP32 IP 주소를 입력하세요 (예: 192.168.0.7)"
         class="input-url"
       />
-      <p v-if="registrationError" class="error-msg">등록에 실패하였습니다.</p>
+      <p v-if="registrationError" class="error-msg">{{ registrationError }}</p>
     </div>
 
     <div class="camera-view-section">
@@ -78,15 +78,15 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import Swal from 'sweetalert2';
+import axios from 'axios';
 
 let nextId = 0;
 const cameras = ref([]);
 const selectedCameras = ref([]);
 const selectedCamera = ref(null);
-const newCameraUrl = ref('');
+const newCameraIp = ref('');
 const showRegisterBox = ref(false);
-const registrationError = ref(false);
+const registrationError = ref('');
 const editMode = ref(false);
 const deleteMode = ref(false);
 const expandedCamera = ref(null);
@@ -96,38 +96,109 @@ onMounted(() => {
   window.addEventListener('resize', () => {
     windowWidth.value = window.innerWidth;
   });
-
-  // localStorage에서 카메라 복원
-  const saved = localStorage.getItem('cameras');
-  if (saved) {
-    const parsed = JSON.parse(saved);
-    cameras.value = parsed;
-    nextId = parsed.length > 0 ? Math.max(...parsed.map((c) => c.id)) + 1 : 0;
-  }
+  fetchCameraList();
 });
 
-const addCamera = () => {
-  if (newCameraUrl.value.trim() === '') {
-    registrationError.value = true;
+const fetchCameraList = async () => {
+  try {
+    const res = await axios.get('http://localhost:5000/api/device/list');
+    if (res.data.success) {
+      cameras.value = res.data.devices
+        .filter((device) => device.ip_address)
+        .map((device, idx) => ({
+          id: idx,
+          url: `http://${device.ip_address}:82/stream`,
+          mac: device.mac_address,
+          token: device.token,
+          name: device.device_name,
+        }));
+      nextId = cameras.value.length;
+    }
+  } catch (err) {
+    registrationError.value = '카메라 목록 불러오기 실패';
+  }
+};
+
+const registerDevice = async () => {
+  if (newCameraIp.value.trim() === '') {
+    registrationError.value = 'IP 주소를 입력하세요.';
     return;
   }
 
-  const newCamera = { id: nextId++, url: newCameraUrl.value };
-  cameras.value.push(newCamera);
+  if (cameras.value.some((c) => c.url.includes(newCameraIp.value))) {
+    registrationError.value = '이미 등록된 장치입니다.';
+    return;
+  }
 
-  // localstorage에 저장
-  localStorage.setItem('cameras', JSON.stringify(cameras.value));
+  try {
+    const response = await axios.post(
+      'http://localhost:5000/api/device/verify',
+      {
+        ip: newCameraIp.value,
+      },
+    );
 
-  newCameraUrl.value = '';
-  showRegisterBox.value = false;
-  registrationError.value = false;
-  editMode.value = false;
+    if (response.data.success && response.data.streamUrl) {
+      cameras.value.push({
+        id: nextId++,
+        url: response.data.streamUrl,
+        mac: response.data.mac,
+        token: response.data.token,
+        name: response.data.device_name,
+      });
+      showRegisterBox.value = false;
+      registrationError.value = '';
+    } else {
+      registrationError.value = response.data.message || '장치 인증 실패';
+    }
+  } catch (err) {
+    registrationError.value = '장치 인증 요청 실패';
+  }
 };
 
 const startRegisterMode = () => {
   showRegisterBox.value = true;
   editMode.value = false;
   deleteMode.value = false;
+};
+
+const confirmAction = async () => {
+  if (showRegisterBox.value) return registerDevice();
+
+  if (deleteMode.value) {
+    const deletedMacs = cameras.value
+      .filter((c) => selectedCameras.value.includes(c.id))
+      .map((c) => c.mac);
+
+    try {
+      await axios.post('http://localhost:5000/api/device/delete', {
+        mac_addresses: deletedMacs,
+      });
+    } catch (err) {
+      console.error('장치 삭제 요청 실패', err);
+    }
+
+    cameras.value = cameras.value.filter(
+      (camera) => !selectedCameras.value.includes(camera.id),
+    );
+    selectedCameras.value = [];
+  } else if (editMode.value) {
+    alert('카메라 수정 완료');
+    selectedCamera.value = null;
+  }
+
+  editMode.value = false;
+  deleteMode.value = false;
+  showRegisterBox.value = false;
+};
+
+const cancelAction = () => {
+  editMode.value = false;
+  deleteMode.value = false;
+  showRegisterBox.value = false;
+  selectedCamera.value = null;
+  selectedCameras.value = [];
+  expandedCamera.value = null;
 };
 
 const isCameraSelected = (id) => {
@@ -177,87 +248,20 @@ const startDeleteMode = () => {
   selectedCameras.value = [];
 };
 
-const confirmAction = () => {
-  if (deleteMode.value && selectedCameras.value.length === 0) return;
-  if (editMode.value && selectedCamera.value === null && !deleteMode.value)
-    return;
-  if (showRegisterBox.value && newCameraUrl.value.trim() === '') return;
-
-  if (deleteMode.value) {
-    cameras.value = cameras.value.filter(
-      (camera) => !selectedCameras.value.includes(camera.id),
-    );
-
-    Swal.fire({
-      // ✅ SweetAlert2로 변경
-      title: '삭제 완료',
-      text: '카메라가 삭제되었습니다.',
-      icon: 'success',
-      confirmButtonText: '확인',
-    });
-
-    selectedCameras.value = [];
-  } else if (editMode.value) {
-    Swal.fire({
-      // ✅ SweetAlert2로 변경
-      title: '수정 완료',
-      text: '카메라가 수정되었습니다.',
-      icon: 'success',
-      confirmButtonText: '확인',
-    });
-    selectedCamera.value = null;
-  } else if (showRegisterBox.value) {
-    addCamera();
-    return;
-  }
-
-  localStorage.setItem('cameras', JSON.stringify(cameras.value));
-
-  editMode.value = false;
-  deleteMode.value = false;
-  showRegisterBox.value = false;
-};
-
-const cancelAction = () => {
-  editMode.value = false;
-  deleteMode.value = false;
-  showRegisterBox.value = false;
-  selectedCamera.value = null;
-  selectedCameras.value = [];
-  expandedCamera.value = null;
-};
-
 const streamContainerStyle = computed(() => {
-  if (expandedCamera.value !== null) {
-    return { gridTemplateColumns: '1fr' };
-  }
   const count = cameras.value.length;
   const width = windowWidth.value;
-
+  if (expandedCamera.value !== null) return { gridTemplateColumns: '1fr' };
   if (count === 1) return { gridTemplateColumns: '1fr' };
-  if (count >= 2 && count <= 4) {
-    if (width < 600) return { gridTemplateColumns: '1fr' };
-    else return { gridTemplateColumns: '1fr 1fr' };
-  }
-  if (count >= 5 && count <= 9) {
-    if (width < 600) return { gridTemplateColumns: '1fr' };
-    else if (width < 1024) return { gridTemplateColumns: '1fr 1fr' };
-    else return { gridTemplateColumns: '1fr 1fr 1fr' };
-  }
-  if (count >= 10 && count <= 24) {
-    if (width < 600) return { gridTemplateColumns: '1fr' };
-    else if (width < 1024) return { gridTemplateColumns: '1fr 1fr' };
-    else if (width < 1400) return { gridTemplateColumns: '1fr 1fr 1fr' };
-    else return { gridTemplateColumns: '1fr 1fr 1fr 1fr' };
-  }
-  if (count >= 25) {
-    if (width < 600) return { gridTemplateColumns: '1fr' };
-    else if (width < 1024) return { gridTemplateColumns: '1fr 1fr' };
-    else if (width < 1400) return { gridTemplateColumns: '1fr 1fr 1fr' };
-    else if (width < 1800) return { gridTemplateColumns: '1fr 1fr 1fr 1fr' };
-    else return { gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr' };
-  }
-  return { gridTemplateColumns: '1fr' };
+  if (count >= 2 && count <= 4)
+    return { gridTemplateColumns: width < 600 ? '1fr' : '1fr 1fr' };
+  if (count <= 9)
+    return { gridTemplateColumns: width < 1024 ? '1fr 1fr' : '1fr 1fr 1fr' };
+  if (count <= 24)
+    return {
+      gridTemplateColumns: width < 1400 ? '1fr 1fr 1fr' : '1fr 1fr 1fr 1fr',
+    };
+  return { gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr' };
 });
 </script>
 

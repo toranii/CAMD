@@ -26,7 +26,7 @@ const router = createRouter({
   routes,
 });
 
-// 로그인 안한 사용자는 login으로 리디렉션
+// ✅ 로그인 안한 사용자는 /login으로 리디렉션
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token');
 
