@@ -21,6 +21,7 @@
           <input
             type="password"
             v-model="password"
+            @input="sanitizePassword"
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
             placeholder="••••••••••"
             required
@@ -66,6 +67,11 @@ const goToSignup = () => {
 const sanitizeEmail = () => {
   // 공격에 사용될 수 있는 특수문자 제거
   email.value = email.value.replace(/[<>'"\\/%;&=?!]/g, '');
+};
+
+const sanitizePassword = () => {
+  // 허용된 문자만 남기고 제거 (영문, 숫자, @$!%*#?&)
+  password.value = password.value.replace(/[^A-Za-z\d@$!%*#?&]/g, '');
 };
 
 const handleLogin = async () => {
