@@ -72,6 +72,19 @@ router.post('/login', (req, res) => {
   });
 });
 
+// POST /api/auth/verify_token
+router.post('/verify_token', (req, res) => {
+  const { token } = req.body;
+  if (!token) return res.status(400).json({ message: '토큰이 없습니다.' });
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    return res.json({ valid: true, user: decoded });
+  } catch (err) {
+    return res.status(401).json({ message: '토큰이 유효하지 않거나 만료됨' });
+  }
+});
+
 // POST /api/auth/verify_device
 router.post('/verify_device', (req, res) => {
   const { token } = req.body;

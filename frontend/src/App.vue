@@ -65,6 +65,7 @@ import { ref, onMounted, watch } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import LoginView from './components/LoginView.vue';
 import Swal from 'sweetalert2';
+import axios from 'axios';
 
 const isLoggedIn = ref(false);
 const isLoginPage = ref(true);
@@ -74,28 +75,10 @@ const cameraCount = ref(2);
 const router = useRouter();
 const route = useRoute();
 
-// ✅ 로그인 상태 체크
-const checkLoginStatus = () => {
-  const token = localStorage.getItem('token');
-  isLoggedIn.value = !!token;
-};
-
 // ✅ 로그인/회원가입 페이지 구분
 const updateSignPageStatus = (path) => {
   isLoginPage.value = path === '/' || path === '/login';
   isSignupPage.value = path === '/signup';
-};
-
-// ✅ 라우터 가드
-const applyRouteGuard = (path) => {
-  const publicPages = ['/', '/login', '/signup'];
-  const isPublic = publicPages.includes(path);
-
-  if (!isLoggedIn.value && !isPublic) {
-    // 로그인이 안되어 있는데 비공개 페이지 접근 시 → 로그인 페이지로
-    router.replace('/login');
-  }
-  // ✅ 로그인 상태일 경우는 강제 리다이렉트 하지 않음 (현재 페이지 유지됨)
 };
 
 // ✅ 로그인 성공 시 처리
@@ -126,19 +109,60 @@ const logout = () => {
 };
 
 // ✅ 최초 로딩 시 처리
-onMounted(() => {
-  checkLoginStatus();
+onMounted(async () => {
+  const token = localStorage.getItem('token');
+
+  if (token) {
+    try {
+      // 서버에 토큰 유효성 확인 요청
+      await axios.post('http://localhost:5000/api/auth/verify_token', {
+        token,
+      });
+      isLoggedIn.value = true;
+    } catch (err) {
+      // 토큰이 만료되었거나 유효하지 않으면
+      isLoggedIn.value = false;
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      router.replace('/login');
+    }
+  } else {
+    // 토큰이 없으면 로그인 페이지로
+    isLoggedIn.value = false;
+    if (!['/', '/login', '/signup'].includes(route.path)) {
+      router.replace('/login');
+    }
+  }
+
   updateSignPageStatus(route.path);
-  applyRouteGuard(route.path);
 });
 
 // ✅ 경로 변경 감시
 watch(
   () => route.path,
-  (newPath) => {
-    checkLoginStatus();
+  async (newPath) => {
+    const token = localStorage.getItem('token');
+
+    if (token) {
+      try {
+        await axios.post('http://localhost:5000/api/auth/verify_token', {
+          token,
+        });
+        isLoggedIn.value = true;
+      } catch (err) {
+        isLoggedIn.value = false;
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        router.replace('/login');
+      }
+    } else {
+      isLoggedIn.value = false;
+      if (!['/', '/login', '/signup'].includes(newPath)) {
+        router.replace('/login');
+      }
+    }
+
     updateSignPageStatus(newPath);
-    applyRouteGuard(newPath);
   },
 );
 </script>

@@ -88,22 +88,15 @@ const handleLogin = async () => {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
 
-    // ✅ SweetAlert2로 로그인 성공 메시지
-    Swal.fire({
-      title: '로그인 성공!',
-      text: '홈 화면으로 이동합니다.',
-      icon: 'success',
-      confirmButtonText: '확인',
-    }).then(() => {
-      router.push('/home');
-    });
+    // ✅ 알림 없이 바로 홈으로 이동
+    await router.push('/home');
   } catch (error) {
     console.error(
       '로그인 실패:',
       error.response?.data?.message || error.message,
     );
 
-    // ✅ SweetAlert2로 로그인 실패 메시지
+    // 실패 알림은 그대로 유지
     Swal.fire({
       title: '로그인 실패',
       text: error.response?.data?.message || '로그인에 실패했습니다.',
