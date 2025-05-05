@@ -88,15 +88,14 @@ const updateSignPageStatus = (path) => {
 
 // ✅ 라우터 가드
 const applyRouteGuard = (path) => {
-  if (isLoggedIn.value) {
-    if (path === '/' || path === '/login' || path === '/signup') {
-      router.replace('/home');
-    }
-  } else {
-    if (!(path === '/' || path === '/login' || path === '/signup')) {
-      router.replace('/login');
-    }
+  const publicPages = ['/', '/login', '/signup'];
+  const isPublic = publicPages.includes(path);
+
+  if (!isLoggedIn.value && !isPublic) {
+    // 로그인이 안되어 있는데 비공개 페이지 접근 시 → 로그인 페이지로
+    router.replace('/login');
   }
+  // ✅ 로그인 상태일 경우는 강제 리다이렉트 하지 않음 (현재 페이지 유지됨)
 };
 
 // ✅ 로그인 성공 시 처리
