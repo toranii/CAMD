@@ -25,12 +25,16 @@ CREATE TABLE `login_logs` (
   CONSTRAINT `fk_logs_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-CREATE TABLE devices (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  device_name VARCHAR(100) NOT NULL,
-  token VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
+-- 3. devices 테이블 생성
+CREATE TABLE `devices` (
+    `id` int(11) NOT NULL AUTO_INCREMENT,
+    `device_name` varchar(100) DEFAULT NULL,
+    `token` varchar(255) NOT NULL,
+    `created_at` timestamp NULL DEFAULT current_timestamp(),
+    `mac_address` varchar(50) DEFAULT NULL,
+    `ip_address` varchar(255) DEFAULT NULL,
+    PRIMARY KEY (`id`)
+) ENGINE = InnoDB AUTO_INCREMENT = 6 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci
 
 -- 4. 기본 디바이스 등록 (예시)
 INSERT INTO `devices` (`device_name`, `token`) 
