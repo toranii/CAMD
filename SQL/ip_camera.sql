@@ -34,7 +34,7 @@ CREATE TABLE `devices` (
     `mac_address` varchar(50) DEFAULT NULL,
     `ip_address` varchar(255) DEFAULT NULL,
     PRIMARY KEY (`id`)
-) ENGINE = InnoDB AUTO_INCREMENT = 6 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci
+) ENGINE = InnoDB AUTO_INCREMENT = 6 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_general_ci;
 
 -- 4. 기본 디바이스 등록 (예시)
 INSERT INTO `devices` (`device_name`, `token`) 
