@@ -29,12 +29,19 @@ const router = createRouter({
 // ✅ 로그인 안한 사용자는 /login으로 리디렉션
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token');
+  const isAuthPage = to.path === '/login' || to.path === '/signup';
 
-  if (to.meta.requiresAuth && !token) {
-    next('/login');
-  } else {
-    next();
+  // ✅ 1. 인증 페이지에 접근했는데 로그인된 경우 → 홈으로 보냄
+  if (isAuthPage && token) {
+    return next('/home');
   }
+
+  // ✅ 2. 인증이 필요한 페이지인데 토큰이 없는 경우 → 로그인 페이지로
+  if (to.meta.requiresAuth && !token) {
+    return next('/login');
+  }
+
+  next(); // 그 외는 통과
 });
 
 export default router;

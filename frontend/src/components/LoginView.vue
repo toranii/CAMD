@@ -52,6 +52,7 @@
 <script setup>
 import { ref } from 'vue';
 import axios from 'axios';
+import { onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2'; // ✅ 추가
 
@@ -119,4 +120,12 @@ const handleLogin = async () => {
     }
   }
 };
+
+onMounted(() => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    // ✅ 로그인된 상태에서 /login에 접근하면 자동 이동
+    router.replace('/home');
+  }
+});
 </script>
