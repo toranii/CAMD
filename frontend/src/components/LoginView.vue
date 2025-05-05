@@ -84,25 +84,39 @@ const handleLogin = async () => {
     const token = response.data.token;
     const user = response.data.user;
 
-    // 토큰을 로컬스토리지에 저장
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(user));
 
-    // ✅ 알림 없이 바로 홈으로 이동
     await router.push('/home');
   } catch (error) {
-    console.error(
-      '로그인 실패:',
-      error.response?.data?.message || error.message,
-    );
+    const status = error.response?.status;
+    const message = error.response?.data?.message || '로그인에 실패했습니다.';
 
-    // 실패 알림은 그대로 유지
-    Swal.fire({
-      title: '로그인 실패',
-      text: error.response?.data?.message || '로그인에 실패했습니다.',
-      icon: 'error',
-      confirmButtonText: '확인',
-    });
+    if (status === 429) {
+      // 차단 상태
+      Swal.fire({
+        title: '로그인 제한',
+        html: message, // 줄바꿈 포함 메시지 처리
+        icon: 'warning',
+        confirmButtonText: '확인',
+      });
+    } else if (status === 401) {
+      // 이메일/비밀번호 오류
+      Swal.fire({
+        title: '로그인 실패',
+        text: message,
+        icon: 'error',
+        confirmButtonText: '확인',
+      });
+    } else {
+      // 기타 오류
+      Swal.fire({
+        title: '오류',
+        text: '로그인 중 문제가 발생했습니다.',
+        icon: 'error',
+        confirmButtonText: '확인',
+      });
+    }
   }
 };
 </script>
