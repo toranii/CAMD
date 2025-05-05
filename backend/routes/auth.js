@@ -167,35 +167,4 @@ router.post('/register_device', (req, res) => {
   });
 });
 
-// POST /api/auth/verify_device
-router.post('/verify_device', (req, res) => {
-  const { token } = req.body;
-  console.log('[DEVICE VERIFY] 요청 →', token);
-
-  db.getConnection((err, conn) => {
-    if (err) {
-      console.error('DB 연결 오류:', err);
-      return res.status(500).send('DB 연결 오류');
-    }
-
-    // devices 테이블에서 토큰 조회
-    const sql = 'SELECT * FROM devices WHERE token = ?';
-    conn.query(sql, [token], (queryErr, rows) => {
-      conn.release();
-
-      if (queryErr) {
-        console.error('쿼리 오류:', queryErr);
-        return res.status(500).send('서버 내부 오류');
-      }
-
-      if (rows.length === 0) {
-        return res.status(401).json({ message: '유효하지 않은 토큰' });
-      }
-
-      // 인증 성공
-      return res.json({ message: '인증 성공', device: rows[0] });
-    });
-  });
-});
-
 module.exports = router;

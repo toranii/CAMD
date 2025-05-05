@@ -1,61 +1,71 @@
 <template>
   <div id="app" class="app-layout">
-    <div v-if="isLoginPage || isSignupPage">
-      <LoginView v-if="isLoginPage" @login-success="handleLoginSuccess" />
-      <router-view v-else />
+    <!-- 🔒 토큰 체크 중일 때 -->
+    <div
+      v-if="isCheckingToken"
+      class="flex justify-center items-center h-screen text-xl"
+    >
+      🔐 로그인 상태 확인 중...
     </div>
-    <div v-else class="main-layout">
-      <aside class="sidebar">
-        <div class="sidebar-header">CamStone</div>
+    <!-- ✅ 토큰 체크 끝나면 렌더링 -->
+    <div v-else>
+      <div v-if="isLoginPage || isSignupPage">
+        <LoginView v-if="isLoginPage" @login-success="handleLoginSuccess" />
+        <router-view v-else />
+      </div>
+      <div v-else class="main-layout">
+        <aside class="sidebar">
+          <div class="sidebar-header">CamStone</div>
 
-        <!-- ✅ 프로필 정보 -->
-        <div class="profile-info">
-          <p><strong>이름:</strong> 김수재</p>
-          <p><strong>접속 IP:</strong> 127.0.0.1</p>
-          <p><strong>이메일:</strong> 1@1</p>
-          <p><strong>등록 카메라:</strong> {{ cameraCount }}대</p>
-        </div>
-        <div class="sidebar-separator"></div>
+          <!-- ✅ 프로필 정보 -->
+          <div class="profile-info">
+            <p><strong>이름:</strong> 김수재</p>
+            <p><strong>접속 IP:</strong> 127.0.0.1</p>
+            <p><strong>이메일:</strong> 1@1</p>
+            <p><strong>등록 카메라:</strong> {{ cameraCount }}대</p>
+          </div>
+          <div class="sidebar-separator"></div>
 
-        <!-- 메뉴 -->
-        <router-link
-          to="/home"
-          class="nav-item"
-          active-class="router-link-active"
-          >홈</router-link
-        >
-        <router-link
-          to="/camera"
-          class="nav-item"
-          active-class="router-link-active"
-          >카메라</router-link
-        >
-        <router-link
-          to="/dashboard"
-          class="nav-item"
-          active-class="router-link-active"
-          >대시보드</router-link
-        >
-        <router-link
-          to="/alerts"
-          class="nav-item"
-          active-class="router-link-active"
-          >알림</router-link
-        >
-        <router-link
-          to="/settings"
-          class="nav-item"
-          active-class="router-link-active"
-          >설정</router-link
-        >
+          <!-- 메뉴 -->
+          <router-link
+            to="/home"
+            class="nav-item"
+            active-class="router-link-active"
+            >홈</router-link
+          >
+          <router-link
+            to="/camera"
+            class="nav-item"
+            active-class="router-link-active"
+            >카메라</router-link
+          >
+          <router-link
+            to="/dashboard"
+            class="nav-item"
+            active-class="router-link-active"
+            >대시보드</router-link
+          >
+          <router-link
+            to="/alerts"
+            class="nav-item"
+            active-class="router-link-active"
+            >알림</router-link
+          >
+          <router-link
+            to="/settings"
+            class="nav-item"
+            active-class="router-link-active"
+            >설정</router-link
+          >
 
-        <div class="sidebar-separator"></div>
-        <button @click="logout" class="logout-btn">로그아웃</button>
-      </aside>
+          <div class="sidebar-separator"></div>
+          <button @click="logout" class="logout-btn">로그아웃</button>
+        </aside>
 
-      <main class="content">
-        <router-view />
-      </main>
+        <main class="content">
+          <router-view />
+        </main>
+      </div>
     </div>
   </div>
 </template>
@@ -71,6 +81,7 @@ const isLoggedIn = ref(false);
 const isLoginPage = ref(true);
 const isSignupPage = ref(false);
 const cameraCount = ref(2);
+const isCheckingToken = ref(true); // 새로고침 시 토큰 체크크
 
 const router = useRouter();
 const route = useRoute();
@@ -114,20 +125,17 @@ onMounted(async () => {
 
   if (token) {
     try {
-      // 서버에 토큰 유효성 확인 요청
       await axios.post('http://localhost:5000/api/auth/verify_token', {
         token,
       });
       isLoggedIn.value = true;
     } catch (err) {
-      // 토큰이 만료되었거나 유효하지 않으면
       isLoggedIn.value = false;
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       router.replace('/login');
     }
   } else {
-    // 토큰이 없으면 로그인 페이지로
     isLoggedIn.value = false;
     if (!['/', '/login', '/signup'].includes(route.path)) {
       router.replace('/login');
@@ -135,6 +143,7 @@ onMounted(async () => {
   }
 
   updateSignPageStatus(route.path);
+  isCheckingToken.value = false; // ✅ 로딩 끝
 });
 
 // ✅ 경로 변경 감시
