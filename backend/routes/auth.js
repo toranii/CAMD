@@ -1,13 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const db = require('../db');
 const normalizeIp = require('../utils/normalizeIp');
 require('dotenv').config();
 
 //  POST  /api/auth/login
 router.post('/login', (req, res) => {
-  const { email, password } = req.body;
+  const { email, password: plainPwd } = req.body;
   console.log('[LOGIN] 요청 →', email);
 
   const rawIp =
@@ -72,46 +73,109 @@ router.post('/login', (req, res) => {
       }
 
       // 로그인 시도
-      proceedToLogin(conn, email, password, ip);
+      proceedToLogin(conn, email, plainPwd, ip);
     });
 
     // 실제 로그인 처리
-    function proceedToLogin(conn, email, password, ip) {
-      const selectSql = 'SELECT * FROM users WHERE email = ? AND password = ?';
-      conn.query(selectSql, [email, password], (selErr, rows) => {
-        const success = rows.length > 0;
-        const userRow = success ? rows[0] : { id: null };
-
-        const logSql =
-          'INSERT INTO login_logs (user_id, email, ip_address, success) VALUES (?,?,?,?)';
-        conn.query(logSql, [userRow.id, email, ip, success], (logErr) => {
+    async function proceedToLogin(conn, email, plainPwd, ip) {
+      // 이메일로 사용자 조회 (비밀번호는 해시 비교)
+      const selSql = 'SELECT * FROM users WHERE email = ?';
+      conn.query(selSql, [email], async (selErr, rows) => {
+        if (selErr) {
           conn.release();
-          if (logErr) console.error('로그 기록 오류:', logErr);
+          return res.status(500).send('쿼리 오류');
+        }
 
-          if (!success) {
-            return res
-              .status(401)
-              .json({ message: '이메일 또는 비밀번호가 올바르지 않습니다.' });
-          }
+        const userRow = rows[0] || null;
+        const success =
+          userRow !== null
+            ? await bcrypt.compare(plainPwd, userRow.password)
+            : false;
 
-          const token = jwt.sign(
-            { id: userRow.id, email: userRow.email },
-            process.env.JWT_SECRET,
-            { expiresIn: '1h' },
-          );
+        // 로그인 로그 Insert (성공/실패 모두)
+        const insSql =
+          'INSERT INTO login_logs (user_id, email, ip_address, success) VALUES (?,?,?,?)';
+        conn.query(
+          insSql,
+          [userRow?.id || null, email, ip, success],
+          (insErr) => {
+            conn.release();
+            if (insErr) console.error('로그 기록 오류:', insErr);
+          },
+        );
 
-          return res.json({
-            token,
-            user: {
-              id: userRow.id,
-              name: userRow.name,
-              email: userRow.email,
-            },
-          });
+        // 인증 결과 응답
+        if (!success) {
+          return res
+            .status(401)
+            .json({ message: '이메일 또는 비밀번호가 올바르지 않습니다.' });
+        }
+
+        // JWT 토큰 발급 (1시간)
+        const token = jwt.sign(
+          { id: userRow.id, email: userRow.email },
+          process.env.JWT_SECRET,
+          { expiresIn: '1h' },
+        );
+
+        return res.json({
+          token,
+          user: {
+            id: userRow.id,
+            name: userRow.name,
+            email: userRow.email,
+          },
         });
       });
     }
   });
+});
+
+// POST /api/auth/signup
+router.post('/signup', async (req, res) => {
+  const { name, email, password, phone } = req.body;
+  if (!name || !email || !password) {
+    return res
+      .status(400)
+      .json({ message: '필수 항목(name, email, password)이 누락되었습니다.' });
+  }
+
+  try {
+    // 1) 비밀번호 해시화
+    const saltRounds = 10;
+    const hash = await bcrypt.hash(password, saltRounds);
+
+    // 2) DB에 사용자 저장
+    db.getConnection((err, conn) => {
+      if (err) return res.status(500).json({ message: 'DB 연결 오류' });
+
+      const sql = `
+        INSERT INTO users (name, email, password, phone)
+        VALUES (?, ?, ?, ?)
+      `;
+      conn.query(sql, [name, email, hash, phone || null], (dbErr, result) => {
+        conn.release();
+        if (dbErr) {
+          console.error('회원가입 오류:', dbErr);
+          // 중복 이메일 등 제약 조건 위반 처리
+          if (dbErr.code === 'ER_DUP_ENTRY') {
+            return res
+              .status(409)
+              .json({ message: '이미 사용 중인 이메일입니다.' });
+          }
+          return res.status(500).json({ message: '회원가입 실패' });
+        }
+        // 성공
+        return res.status(201).json({
+          message: '회원가입 성공',
+          userId: result.insertId,
+        });
+      });
+    });
+  } catch (hashErr) {
+    console.error('bcrypt 해시 오류:', hashErr);
+    return res.status(500).json({ message: '서버 내부 오류' });
+  }
 });
 
 // POST /api/auth/verify_token

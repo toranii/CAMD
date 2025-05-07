@@ -80,7 +80,6 @@
 import { ref, computed, onMounted } from 'vue';
 import axios from 'axios';
 
-let nextId = 0;
 const cameras = ref([]);
 const selectedCameras = ref([]);
 const selectedCamera = ref(null);
@@ -112,7 +111,6 @@ const fetchCameraList = async () => {
           token: device.token,
           name: device.device_name,
         }));
-      nextId = cameras.value.length;
     }
   } catch (err) {
     registrationError.value = '카메라 목록 불러오기 실패';
@@ -120,7 +118,7 @@ const fetchCameraList = async () => {
 };
 
 const registerDevice = async () => {
-  if (newCameraIp.value.trim() === '') {
+  if (!newCameraIp.value.trim()) {
     registrationError.value = 'IP 주소를 입력하세요.';
     return;
   }
@@ -131,28 +129,38 @@ const registerDevice = async () => {
   }
 
   try {
-    const response = await axios.post(
+    // 1) 토큰 검증
+    const { data: verify } = await axios.post(
       'http://localhost:5000/api/device/verify',
+      { ip: newCameraIp.value },
+    );
+    if (!verify.success) {
+      registrationError.value = verify.message || '장치 인증 실패';
+      return;
+    }
+
+    // 2) DB 에 실제 등록
+    const { data: reg } = await axios.post(
+      'http://localhost:5000/api/device/register',
       {
-        ip: newCameraIp.value,
+        mac: verify.mac,
+        token: verify.token,
+        device_name: verify.deviceName,
+        ip_address: newCameraIp.value,
       },
     );
-
-    if (response.data.success && response.data.streamUrl) {
-      cameras.value.push({
-        id: nextId++,
-        url: response.data.streamUrl,
-        mac: response.data.mac,
-        token: response.data.token,
-        name: response.data.device_name,
-      });
-      showRegisterBox.value = false;
-      registrationError.value = '';
-    } else {
-      registrationError.value = response.data.message || '장치 인증 실패';
+    if (!reg.success) {
+      registrationError.value = reg.message || 'DB 등록 실패';
+      return;
     }
+
+    // 3) 변경된 목록을 다시 불러오기
+    await fetchCameraList();
+    showRegisterBox.value = false;
+    registrationError.value = '';
   } catch (err) {
-    registrationError.value = '장치 인증 요청 실패';
+    console.error(err);
+    registrationError.value = '장치 등록 중 오류가 발생했습니다.';
   }
 };
 

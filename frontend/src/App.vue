@@ -19,9 +19,9 @@
 
           <!-- ✅ 프로필 정보 -->
           <div class="profile-info">
-            <p><strong>이름:</strong> 김수재</p>
+            <p><strong>이름:</strong> 홍길동</p>
             <p><strong>접속 IP:</strong> 127.0.0.1</p>
-            <p><strong>이메일:</strong> 1@1</p>
+            <p><strong>이메일:</strong> qwe@naver.com</p>
             <p><strong>등록 카메라:</strong> {{ cameraCount }}대</p>
           </div>
           <div class="sidebar-separator"></div>
@@ -81,10 +81,11 @@ const isLoggedIn = ref(false);
 const isLoginPage = ref(true);
 const isSignupPage = ref(false);
 const cameraCount = ref(2);
-const isCheckingToken = ref(true); // 새로고침 시 토큰 체크크
+const isCheckingToken = ref(true); // 새로고침 시 토큰 체크
 
 const router = useRouter();
 const route = useRoute();
+//const user = ref(JSON.parse(localStorage.getItem('user') || '{}'));
 
 // ✅ 로그인/회원가입 페이지 구분
 const updateSignPageStatus = (path) => {

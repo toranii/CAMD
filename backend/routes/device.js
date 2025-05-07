@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 const crypto = require('crypto');
-const fetch = require('node-fetch');
+const fetch = require('node-fetch').default;
 
 // 디바이스 등록 API
 router.post('/register', (req, res) => {
@@ -61,7 +61,7 @@ router.post('/register', (req, res) => {
           'INSERT INTO devices (mac_address, token, device_name, ip_address) VALUES (?, ?, ?, ?)';
         connection.query(
           insertSql,
-          [mac, token, 'device_name', ip_address],
+          [mac, token, device_name, ip_address],
           (insertErr) => {
             connection.release();
             if (insertErr) {

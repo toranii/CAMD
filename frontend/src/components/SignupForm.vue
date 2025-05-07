@@ -103,6 +103,7 @@
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
+import axios from 'axios';
 
 const router = useRouter();
 
@@ -144,15 +145,40 @@ const goBack = () => {
   router.push('/login');
 };
 
-const handleSignup = () => {
-  Swal.fire({
-    title: '회원가입 완료!',
-    text: '로그인 화면으로 이동합니다.',
-    icon: 'success',
-    confirmButtonText: '확인',
-  }).then(() => {
+const handleSignup = async () => {
+  // 1) 입력 유효성 재검사
+  if (!canSubmit.value) return;
+
+  try {
+    // 2) 백엔드에 회원가입 요청
+    const response = await axios.post('http://localhost:5000/api/auth/signup', {
+      name: name.value,
+      email: email.value,
+      password: password.value,
+      phone: phone.value || null,
+    });
+
+    console.log(response.data);
+
+    // 3) 성공 알림 & 로그인 페이지로 이동
+    await Swal.fire({
+      title: '회원가입 성공!',
+      text: '로그인 화면으로 이동합니다.',
+      icon: 'success',
+      confirmButtonText: '확인',
+    });
     router.push('/login');
-  });
+  } catch (err) {
+    console.error('[Signup] 오류 →', err.response?.data || err);
+    // 에러 메시지 있으면 보여주고, 없으면 일반 실패
+    const msg = err.response?.data?.message || '회원가입에 실패했습니다.';
+    Swal.fire({
+      title: '회원가입 실패',
+      text: msg,
+      icon: 'error',
+      confirmButtonText: '확인',
+    });
+  }
 };
 
 const formatPhone = () => {
