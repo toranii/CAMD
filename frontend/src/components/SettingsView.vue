@@ -1,61 +1,92 @@
 <template>
   <div class="settings-container">
-    <h2 class="title">⚙️ 설정</h2>
-    <p class="description">사용자 맞춰 설정을 조정할 수 있습니다.</p>
+    <div class="settings-grid">
+      <!-- 페이지 설정 -->
+      <div class="setting-box">
+        <h3 class="box-title center">페이지 설정</h3>
 
-    <!-- 알림 설정 -->
-    <div class="setting-group">
-      <label class="setting-label">알림 수신</label>
-      <select v-model="notificationSetting" class="setting-input">
-        <option value="all">모든 알림</option>
-        <option value="important">중요 알림만</option>
-        <option value="none">알림 받지 않음</option>
-      </select>
+        <!-- 카메라 -->
+        <div class="setting-group">
+          <label class="setting-label">기본 카메라</label>
+          <select v-model="cameraBaseUrl" class="setting-input spaced">
+            <option
+              v-for="camera in dummyCameras"
+              :key="camera.id"
+              :value="camera.url"
+            >
+              {{ camera.name }} ({{ camera.url }})
+            </option>
+          </select>
+        </div>
+
+        <!-- 대시보드 표시 개수 -->
+        <div class="setting-group">
+          <label class="setting-label">대시보드 표시 개수</label>
+          <select v-model="dashboardItemCount" class="setting-input spaced">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+          </select>
+        </div>
+
+        <!-- 알림 수신 설정 -->
+        <div class="setting-group">
+          <label class="setting-label">알림 수신 설정</label>
+          <select v-model="notificationSetting" class="setting-input spaced">
+            <option value="all">모든 알림</option>
+            <option value="important">중요 알림만</option>
+            <option value="none">알림 받지 않음</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- 사용자 설정 -->
+      <div class="setting-box">
+        <h3 class="box-title center">사용자 설정</h3>
+
+        <div class="setting-group">
+          <label class="setting-label">현재 비밀번호</label>
+          <input
+            v-model="currentPassword"
+            type="password"
+            class="setting-input spaced"
+          />
+          <p v-if="passwordErrors.current" class="error-msg">
+            {{ passwordErrors.current }}
+          </p>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">새 비밀번호</label>
+          <input
+            v-model="newPassword"
+            type="password"
+            class="setting-input spaced"
+          />
+          <p v-if="passwordErrors.new" class="error-msg">
+            {{ passwordErrors.new }}
+          </p>
+        </div>
+
+        <div class="setting-group">
+          <label class="setting-label">비밀번호 확인</label>
+          <input
+            v-model="confirmPassword"
+            type="password"
+            class="setting-input spaced"
+          />
+          <p v-if="passwordErrors.confirm" class="error-msg">
+            {{ passwordErrors.confirm }}
+          </p>
+        </div>
+
+        <div class="actions">
+          <button @click="saveSettings" :disabled="!hasChanged">저장</button>
+        </div>
+        <p v-if="message" class="message">{{ message }}</p>
+      </div>
     </div>
-
-    <!-- 닉네임 설정 -->
-    <div class="setting-group">
-      <label class="setting-label" for="nickname">닉네임 변경</label>
-      <input
-        id="nickname"
-        v-model="nickname"
-        type="text"
-        placeholder="예: 홍길동"
-        class="setting-input"
-      />
-    </div>
-
-    <!-- 비밀번호 재설정 -->
-    <div class="setting-group">
-      <label class="setting-label" for="password">비밀번호 재설정</label>
-      <input
-        id="password"
-        v-model="password"
-        type="password"
-        placeholder="새 비밀번호 입력"
-        class="setting-input"
-      />
-    </div>
-
-    <!-- 카메라 기본 주소 설정 -->
-    <div class="setting-group">
-      <label class="setting-label" for="cameraBaseUrl">기본 카메라 선택</label>
-      <select id="cameraBaseUrl" v-model="cameraBaseUrl" class="setting-input">
-        <option
-          v-for="camera in dummyCameras"
-          :key="camera.id"
-          :value="camera.url"
-        >
-          {{ camera.name }} ({{ camera.url }})
-        </option>
-      </select>
-    </div>
-
-    <div class="actions">
-      <button @click="saveSettings" :disabled="!hasChanged">저장</button>
-    </div>
-
-    <p v-if="message" class="message">{{ message }}</p>
   </div>
 </template>
 
@@ -63,11 +94,20 @@
 import { ref, computed, onMounted } from 'vue';
 
 const notificationSetting = ref('all');
-const nickname = ref('');
-const password = ref('');
 const cameraBaseUrl = ref('');
-const message = ref('');
+const dashboardItemCount = ref('10');
 
+const currentPassword = ref('');
+const newPassword = ref('');
+const confirmPassword = ref('');
+
+const passwordErrors = ref({
+  current: '',
+  new: '',
+  confirm: '',
+});
+
+const message = ref('');
 const initialSettings = ref({});
 
 const dummyCameras = [
@@ -83,63 +123,100 @@ onMounted(() => {
 
   initialSettings.value = {
     notificationSetting: notificationSetting.value,
-    nickname: nickname.value,
-    password: password.value,
     cameraBaseUrl: cameraBaseUrl.value,
+    dashboardItemCount: dashboardItemCount.value,
   };
 });
 
 const hasChanged = computed(() => {
   return (
     notificationSetting.value !== initialSettings.value.notificationSetting ||
-    nickname.value !== initialSettings.value.nickname ||
-    password.value !== initialSettings.value.password ||
-    cameraBaseUrl.value !== initialSettings.value.cameraBaseUrl
+    cameraBaseUrl.value !== initialSettings.value.cameraBaseUrl ||
+    dashboardItemCount.value !== initialSettings.value.dashboardItemCount ||
+    currentPassword.value ||
+    newPassword.value ||
+    confirmPassword.value
   );
 });
 
 const saveSettings = () => {
-  message.value = `설정이 저장되었습니다.\n알림: ${
-    notificationSetting.value
-  }, 닉네임: ${nickname.value || '없음'}, 카메라 주소: ${
-    cameraBaseUrl.value || '미입력'
-  }`;
-  if (password.value) {
+  passwordErrors.value = { current: '', new: '', confirm: '' };
+
+  // 새 비밀번호 조건: 특수문자 + 영문 + 숫자 + 길이 >= 10, 금지 문자 없음
+  const passwordValid =
+    /[A-Za-z]/.test(newPassword.value) &&
+    /[0-9]/.test(newPassword.value) &&
+    /[!@#$%^&*()\-_=+{}\\[\]:"'|<>,.?/~]/.test(newPassword.value) &&
+    newPassword.value.length >= 10 &&
+    !/[\\/;%]/.test(newPassword.value);
+
+  if (newPassword.value && !passwordValid) {
+    passwordErrors.value.new =
+      '비밀번호는 영문+숫자+특수문자 포함 10자 이상이어야 합니다.';
+    return;
+  }
+
+  if (newPassword.value !== confirmPassword.value) {
+    passwordErrors.value.confirm = '비밀번호가 일치하지 않습니다.';
+    return;
+  }
+
+  if (currentPassword.value !== 'dummy') {
+    passwordErrors.value.current = '현재 비밀번호가 올바르지 않습니다.';
+    return;
+  }
+
+  message.value = `설정이 저장되었습니다.\n알림: ${notificationSetting.value}, 대시보드 개수: ${dashboardItemCount.value}, 카메라: ${cameraBaseUrl.value}`;
+
+  if (newPassword.value) {
     message.value += `\n비밀번호가 변경되었습니다.`;
   }
+
   localStorage.setItem('cameraBaseUrl', cameraBaseUrl.value);
 
   initialSettings.value = {
     notificationSetting: notificationSetting.value,
-    nickname: nickname.value,
-    password: password.value,
     cameraBaseUrl: cameraBaseUrl.value,
+    dashboardItemCount: dashboardItemCount.value,
   };
 };
 </script>
 
 <style scoped>
 .settings-container {
-  max-width: 600px;
+  max-width: 1000px;
   margin: 40px auto;
+  padding: 20px;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 768px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.setting-box {
+  background-color: #f9f9f9;
   padding: 20px;
   border: 1px solid #ccc;
   border-radius: 10px;
-  background-color: #f9f9f9;
 }
 
-.title {
-  font-size: 1.8rem;
+.box-title {
+  font-size: 1.3rem;
   font-weight: bold;
-  text-align: center;
   margin-bottom: 1rem;
   color: #2d3748;
 }
 
-.description {
+.center {
   text-align: center;
-  color: #4a5568;
-  margin-bottom: 2rem;
 }
 
 .setting-group {
@@ -161,8 +238,13 @@ const saveSettings = () => {
   font-size: 1rem;
 }
 
+.spaced {
+  margin-bottom: 10px;
+}
+
 .actions {
-  text-align: right;
+  text-align: center;
+  margin-top: 10px;
 }
 
 .actions button {
@@ -193,5 +275,11 @@ const saveSettings = () => {
   color: #2f855a;
   font-weight: bold;
   white-space: pre-line;
+}
+
+.error-msg {
+  color: #e53e3e;
+  font-size: 0.85rem;
+  margin-top: 5px;
 }
 </style>
