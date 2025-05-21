@@ -100,7 +100,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import Swal from 'sweetalert2';
 import axios from 'axios';
@@ -137,7 +137,9 @@ const canSubmit = computed(() => {
     rule.value.letter &&
     rule.value.number &&
     password.value.length >= 10 &&
-    password.value === passwordConfirm.value
+    password.value === passwordConfirm.value &&
+    emailMessageClass.value === 'success-msg' &&
+    phoneMessageClass.value === 'success-msg'
   );
 });
 
@@ -146,21 +148,16 @@ const goBack = () => {
 };
 
 const handleSignup = async () => {
-  // 1) 입력 유효성 재검사
   if (!canSubmit.value) return;
 
   try {
-    // 2) 백엔드에 회원가입 요청
-    const response = await axios.post('http://localhost:5000/api/auth/signup', {
+    await axios.post('http://localhost:5000/api/auth/signup', {
       name: name.value,
       email: email.value,
       password: password.value,
       phone: phone.value || null,
     });
 
-    console.log(response.data);
-
-    // 3) 성공 알림 & 로그인 페이지로 이동
     await Swal.fire({
       title: '회원가입 성공!',
       text: '로그인 화면으로 이동합니다.',
@@ -169,8 +166,6 @@ const handleSignup = async () => {
     });
     router.push('/login');
   } catch (err) {
-    console.error('[Signup] 오류 →', err.response?.data || err);
-    // 에러 메시지 있으면 보여주고, 없으면 일반 실패
     const msg = err.response?.data?.message || '회원가입에 실패했습니다.';
     Swal.fire({
       title: '회원가입 실패',
@@ -202,33 +197,54 @@ const sanitizeName = () => {
   name.value = name.value.replace(/[<>'"\\/%;&=?!]/g, '');
 };
 
-const validateEmail = () => {
+const validateEmail = async () => {
   if (!validateEmailFormat(email.value)) {
     emailMessage.value = '올바른 이메일 형식을 입력하세요.';
     emailMessageClass.value = 'error-msg';
-  } else {
-    emailMessage.value = '사용 가능한 이메일입니다.';
-    emailMessageClass.value = 'success-msg';
+    return;
+  }
+  try {
+    const res = await axios.post('http://localhost:5000/api/auth/check_email', {
+      email: email.value,
+    });
+    if (res.data.exists) {
+      emailMessage.value = '이미 존재하는 이메일입니다.';
+      emailMessageClass.value = 'error-msg';
+    } else {
+      emailMessage.value = '사용 가능한 이메일입니다.';
+      emailMessageClass.value = 'success-msg';
+    }
+  } catch (err) {
+    emailMessage.value = '이메일 확인 중 오류 발생';
+    emailMessageClass.value = 'error-msg';
   }
 };
 
-const validatePhone = () => {
+const validatePhone = async () => {
   if (!validatePhoneFormat(phone.value)) {
     phoneMessage.value = '올바른 전화번호 형식을 입력하세요. (010-1234-5678)';
     phoneMessageClass.value = 'error-msg';
-  } else {
-    phoneMessage.value = '사용 가능한 전화번호입니다.';
-    phoneMessageClass.value = 'success-msg';
+    return;
+  }
+  try {
+    const res = await axios.post('http://localhost:5000/api/auth/check_phone', {
+      phone: phone.value,
+    });
+    if (res.data.exists) {
+      phoneMessage.value = '이미 존재하는 전화번호입니다.';
+      phoneMessageClass.value = 'error-msg';
+    } else {
+      phoneMessage.value = '사용 가능한 전화번호입니다.';
+      phoneMessageClass.value = 'success-msg';
+    }
+  } catch (err) {
+    phoneMessage.value = '전화번호 확인 중 오류 발생';
+    phoneMessageClass.value = 'error-msg';
   }
 };
 
-const validateEmailFormat = (value) => {
-  return /.+@.+\..+/.test(value);
-};
-
-const validatePhoneFormat = (value) => {
-  return /^\d{2,3}-\d{3,4}-\d{4}$/.test(value);
-};
+const validateEmailFormat = (value) => /.+@.+\..+/.test(value);
+const validatePhoneFormat = (value) => /^\d{2,3}-\d{3,4}-\d{4}$/.test(value);
 
 const validatePassword = () => {
   rule.value.special = /[@$!%*#?&]/.test(password.value);
@@ -249,6 +265,13 @@ const validatePasswordConfirm = () => {
 const togglePasswordVisibility = () => {
   passwordVisible.value = !passwordVisible.value;
 };
+
+watch(email, () => {
+  validateEmail();
+});
+watch(phone, () => {
+  validatePhone();
+});
 </script>
 
 <style scoped>

@@ -6,11 +6,9 @@ const db = require('../db');
 const normalizeIp = require('../utils/normalizeIp');
 require('dotenv').config();
 
-//  POST  /api/auth/login
+// POST /api/auth/login
 router.post('/login', (req, res) => {
   const { email, password: plainPwd } = req.body;
-  console.log('[LOGIN] 요청 →', email);
-
   const rawIp =
     req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
   const ip = normalizeIp(rawIp);
@@ -18,7 +16,6 @@ router.post('/login', (req, res) => {
   db.getConnection((err, conn) => {
     if (err) return res.status(500).send('DB 연결 오류');
 
-    // 1. 최근 로그인 로그 조회 (최대 20개)
     const logSql = `
       SELECT success, login_time
       FROM login_logs
@@ -34,14 +31,12 @@ router.post('/login', (req, res) => {
 
       let failCount = 0;
       let latestFailTime = null;
-
       for (const row of rows) {
         if (row.success === 1) break;
         failCount++;
         if (!latestFailTime) latestFailTime = row.login_time;
       }
 
-      // 차단 조건 확인
       if (failCount >= 10) {
         conn.release();
         return res.status(429).json({
@@ -49,7 +44,6 @@ router.post('/login', (req, res) => {
             '보안상의 이유로 로그인이 제한되었습니다.<br><br>관리자에게 문의하세요.',
         });
       }
-
       if (failCount === 8) {
         const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000);
         if (new Date(latestFailTime) >= fiveMinAgo) {
@@ -60,7 +54,6 @@ router.post('/login', (req, res) => {
           });
         }
       }
-
       if (failCount === 5) {
         const oneMinAgo = new Date(Date.now() - 60 * 1000);
         if (new Date(latestFailTime) >= oneMinAgo) {
@@ -72,13 +65,10 @@ router.post('/login', (req, res) => {
         }
       }
 
-      // 로그인 시도
       proceedToLogin(conn, email, plainPwd, ip);
     });
 
-    // 실제 로그인 처리
     async function proceedToLogin(conn, email, plainPwd, ip) {
-      // 이메일로 사용자 조회 (비밀번호는 해시 비교)
       const selSql = 'SELECT * FROM users WHERE email = ?';
       conn.query(selSql, [email], async (selErr, rows) => {
         if (selErr) {
@@ -87,12 +77,10 @@ router.post('/login', (req, res) => {
         }
 
         const userRow = rows[0] || null;
-        const success =
-          userRow !== null
-            ? await bcrypt.compare(plainPwd, userRow.password)
-            : false;
+        const success = userRow
+          ? await bcrypt.compare(plainPwd, userRow.password)
+          : false;
 
-        // 로그인 로그 Insert (성공/실패 모두)
         const insSql =
           'INSERT INTO login_logs (user_id, email, ip_address, success) VALUES (?,?,?,?)';
         conn.query(
@@ -104,14 +92,12 @@ router.post('/login', (req, res) => {
           },
         );
 
-        // 인증 결과 응답
         if (!success) {
           return res
             .status(401)
             .json({ message: '이메일 또는 비밀번호가 올바르지 않습니다.' });
         }
 
-        // JWT 토큰 발급 (1시간)
         const token = jwt.sign(
           { id: userRow.id, email: userRow.email },
           process.env.JWT_SECRET,
@@ -141,31 +127,28 @@ router.post('/signup', async (req, res) => {
   }
 
   try {
-    // 1) 비밀번호 해시화
     const saltRounds = 10;
     const hash = await bcrypt.hash(password, saltRounds);
 
-    // 2) DB에 사용자 저장
     db.getConnection((err, conn) => {
       if (err) return res.status(500).json({ message: 'DB 연결 오류' });
 
-      const sql = `
-        INSERT INTO users (name, email, password, phone)
-        VALUES (?, ?, ?, ?)
-      `;
+      const sql =
+        'INSERT INTO users (name, email, password, phone) VALUES (?, ?, ?, ?)';
       conn.query(sql, [name, email, hash, phone || null], (dbErr, result) => {
         conn.release();
         if (dbErr) {
           console.error('회원가입 오류:', dbErr);
-          // 중복 이메일 등 제약 조건 위반 처리
           if (dbErr.code === 'ER_DUP_ENTRY') {
+            const field = dbErr.sqlMessage.includes('email')
+              ? '이메일'
+              : '전화번호';
             return res
               .status(409)
-              .json({ message: '이미 사용 중인 이메일입니다.' });
+              .json({ message: `이미 존재하는 ${field}입니다.` });
           }
           return res.status(500).json({ message: '회원가입 실패' });
         }
-        // 성공
         return res.status(201).json({
           message: '회원가입 성공',
           userId: result.insertId,
@@ -176,6 +159,29 @@ router.post('/signup', async (req, res) => {
     console.error('bcrypt 해시 오류:', hashErr);
     return res.status(500).json({ message: '서버 내부 오류' });
   }
+});
+
+// POST /api/auth/check_email
+router.post('/check_email', (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ message: '이메일이 필요합니다.' });
+
+  db.query('SELECT id FROM users WHERE email = ?', [email], (err, results) => {
+    if (err) return res.status(500).json({ message: '서버 오류' });
+    return res.json({ exists: results.length > 0 });
+  });
+});
+
+// POST /api/auth/check_phone
+router.post('/check_phone', (req, res) => {
+  const { phone } = req.body;
+  if (!phone)
+    return res.status(400).json({ message: '전화번호가 필요합니다.' });
+
+  db.query('SELECT id FROM users WHERE phone = ?', [phone], (err, results) => {
+    if (err) return res.status(500).json({ message: '서버 오류' });
+    return res.json({ exists: results.length > 0 });
+  });
 });
 
 // POST /api/auth/verify_token
@@ -209,24 +215,13 @@ router.post('/register_device', (req, res) => {
   };
 
   const newToken = generateToken();
-  console.log(
-    `[DEVICE REGISTER] 디바이스 등록 요청 → 이름: ${device_name}, 토큰: ${newToken}`,
-  );
-
   db.getConnection((err, conn) => {
-    if (err) {
-      console.error('DB 연결 오류:', err);
-      return res.status(500).send('DB 연결 오류');
-    }
+    if (err) return res.status(500).send('DB 연결 오류');
 
     const insertSql = 'INSERT INTO devices (device_name, token) VALUES (?, ?)';
     conn.query(insertSql, [device_name, newToken], (queryErr, result) => {
       conn.release();
-
-      if (queryErr) {
-        console.error('쿼리 오류:', queryErr);
-        return res.status(500).send('서버 내부 오류');
-      }
+      if (queryErr) return res.status(500).send('서버 내부 오류');
 
       return res.json({
         message: '디바이스 등록 성공',
@@ -243,27 +238,17 @@ router.post('/register_device', (req, res) => {
 // POST /api/auth/verify_device
 router.post('/verify_device', (req, res) => {
   const { token } = req.body;
-  console.log('[DEVICE VERIFY] 요청 →', token);
-
   db.getConnection((err, conn) => {
-    if (err) {
-      console.error('DB 연결 오류:', err);
-      return res.status(500).send('DB 연결 오류');
-    }
+    if (err) return res.status(500).send('DB 연결 오류');
 
     const sql = 'SELECT * FROM devices WHERE token = ?';
     conn.query(sql, [token], (queryErr, rows) => {
       conn.release();
-
-      if (queryErr) {
-        console.error('쿼리 오류:', queryErr);
-        return res.status(500).send('서버 내부 오류');
-      }
+      if (queryErr) return res.status(500).send('서버 내부 오류');
 
       if (rows.length === 0) {
         return res.status(401).json({ message: '유효하지 않은 토큰' });
       }
-
       return res.json({ message: '인증 성공', device: rows[0] });
     });
   });
