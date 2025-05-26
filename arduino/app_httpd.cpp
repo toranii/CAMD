@@ -19,6 +19,8 @@
 #include "esp32-hal-ledc.h"
 #include "sdkconfig.h"
 #include "camera_index.h"
+#include "auth.h"
+#include <WiFi.h>
 
 #if defined(ARDUINO_ARCH_ESP32) && defined(CONFIG_ARDUHAL_ESP_LOG)
 #include "esp32-hal-log.h"
@@ -35,6 +37,7 @@
 
 int led_duty = 0;
 bool isStreaming = false;
+extern String token;
 
 #endif
 
@@ -142,6 +145,18 @@ static esp_err_t bmp_handler(httpd_req_t *req) {
   log_i("BMP: %llums, %uB", (uint64_t)((fr_end - fr_start) / 1000), buf_len);
   return res;
 }
+
+static esp_err_t token_handler(httpd_req_t *req) {
+  char json[128];
+  String mac = WiFi.macAddress();
+  snprintf(json, sizeof(json), "{\"token\":\"%s\",\"mac\":\"%s\"}", token.c_str(), mac.c_str());
+
+  
+  httpd_resp_set_type(req, "application/json");
+  httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
+  return httpd_resp_send(req, json, strlen(json));
+}
+
 
 static size_t jpg_encode_stream(void *arg, size_t index, const void *data, size_t len) {
   jpg_chunking_t *j = (jpg_chunking_t *)arg;
@@ -671,7 +686,15 @@ static esp_err_t index_handler(httpd_req_t *req) {
 }
 
 void startCameraServer() {
+  //  if (!deviceAuthentication()) {
+   // Serial.println("Device authentication failed.");
+   // return; // 인증 실패 시 서버 실행 안 함
+  //}
+  
+
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
+  config.server_port = 81;
+  config.ctrl_port = 82;
   config.max_uri_handlers = 16;
 
   httpd_uri_t index_uri = {
@@ -686,6 +709,14 @@ void startCameraServer() {
     .supported_subprotocol = NULL
 #endif
   };
+
+httpd_uri_t token_uri = {
+    .uri = "/token",
+    .method = HTTP_GET,
+    .handler = token_handler,
+    .user_ctx = NULL
+};
+
 
   httpd_uri_t status_uri = {
     .uri = "/status",
@@ -832,14 +863,22 @@ void startCameraServer() {
     httpd_register_uri_handler(camera_httpd, &greg_uri);
     httpd_register_uri_handler(camera_httpd, &pll_uri);
     httpd_register_uri_handler(camera_httpd, &win_uri);
+    httpd_register_uri_handler(camera_httpd, &token_uri);
+
   }
 
   config.server_port += 1;
   config.ctrl_port += 1;
   log_i("Starting stream server on port: '%d'", config.server_port);
-  if (httpd_start(&stream_httpd, &config) == ESP_OK) {
-    httpd_register_uri_handler(stream_httpd, &stream_uri);
-  }
+  esp_err_t stream_err = httpd_start(&stream_httpd, &config);
+  if (stream_err == ESP_OK) {
+  httpd_register_uri_handler(stream_httpd, &stream_uri);
+  log_i("Stream server started successfully.");
+} else {
+  log_e("Failed to start stream server! Error code: %d", stream_err);
+}
+
+  
 }
 
 void setupLedFlash(int pin) {
