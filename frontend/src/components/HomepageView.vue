@@ -1,16 +1,21 @@
 <template>
   <div class="home-container">
-    <h1 class="title">🏠 홈 화면</h1>
+    <h1 class="title"> 홈 화면</h1>
     <div class="grid-layout">
       <!-- 1. 카메라 박스 -->
       <div class="box camera-box">
         <h2>카메라</h2>
-        <img
-          v-if="cameraBaseUrl"
-          :src="cameraBaseUrl"
-          alt="Camera Stream"
-          class="camera-stream"
-        />
+        <!-- 최신 5개 카메라 중 등록된 게 있으면 썸네일로 보여주기 -->
+        <div v-if="latestCameras.length > 0" class="camera-streams">
+          <div
+            v-for="(cam, idx) in latestCameras"
+            :key="idx"
+            class="stream-thumb"
+          >
+            <img :src="cam.url" alt="Camera Stream" class="camera-stream" />
+          </div>
+        </div>
+        <!-- 없으면 안내 문구 -->
         <p v-else class="no-camera">기본 카메라가 설정되지 않았습니다.</p>
       </div>
 
@@ -54,7 +59,15 @@
       <div class="box alert-box">
         <h2>알림</h2>
         <ul class="scroll-list">
-          <li v-for="i in 10" :key="i">알림 {{ i }}</li>
+          <li
+            v-for="(alert, index) in latestAlerts"
+            :key="index"
+            class="alert-item"
+          >
+            <div class="time">{{ formatLoginTime(alert.time) }}</div>
+            <div class="msg">{{ alert.message }}</div>
+          </li>
+          <li v-if="latestAlerts.length === 0">알림이 없습니다.</li>
         </ul>
       </div>
     </div>
@@ -65,48 +78,80 @@
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 
-const cameraBaseUrl = ref('');
+// 카메라, 로그, 알림 상태
+const cameras = ref([]);
 const logs = ref([]);
+const alerts = ref([]);
 
-onMounted(async () => {
+// 로그인된 사용자
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+const userId = user.id;
+
+// 마운트 시 데이터 로드
+onMounted(() => {
+  fetchCameras();
+  fetchLogs();
+  fetchAlerts();
+});
+
+// 카메라 리스트 가져오기
+async function fetchCameras() {
+  if (!userId) return;
   try {
     const res = await axios.get('http://localhost:5000/api/device/list');
-    if (res.data.success && res.data.devices.length > 0) {
-      // 가장 첫 번째 등록된 카메라 사용 (혹은 기본값 지정 로직 커스터마이징 가능)
-      const cam = res.data.devices[0];
-      cameraBaseUrl.value = `http://${cam.ip_address}:82/stream`;
+    if (res.data.success) {
+      cameras.value = res.data.devices.map((d) => ({
+        id: d.id,
+        url: `http://${d.ip_address}:82/stream`,
+      }));
     }
-  } catch (err) {
-    console.error('카메라 목록 불러오기 실패', err);
+  } catch (e) {
+    console.error('카메라 불러오기 실패', e);
   }
-  fetchLogs();
-});
+}
 
-const fetchLogs = async () => {
+// 로그인 로그 (최신 5개)
+async function fetchLogs() {
+  if (!userId) return;
   try {
-    const response = await axios.get(
-      'http://localhost:5000/api/auth/login-logs',
+    const { data } = await axios.get(
+      `http://localhost:5000/api/auth/login-logs?user_id=${userId}`,
     );
-    logs.value = response.data;
-  } catch (error) {
-    console.error('로그 가져오기 실패:', error);
+    logs.value = data;
+  } catch (e) {
+    console.error('로그 불러오기 실패', e);
   }
-};
+}
 
-const latestLogs = computed(() => {
-  return logs.value.slice(0, 10);
-});
+// 알림 (최신 5개)
+async function fetchAlerts() {
+  if (!userId) return;
+  try {
+    const { data } = await axios.get(
+      `http://localhost:5000/api/alerts?user_id=${userId}`,
+    );
+    alerts.value = data;
+  } catch (e) {
+    console.error('알림 불러오기 실패', e);
+  }
+}
 
-const formatLoginTime = (timeString) => {
-  const date = new Date(timeString);
-  const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  const hh = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  const ss = String(date.getSeconds()).padStart(2, '0');
-  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
-};
+// 최신 5개 추출
+const latestCameras = computed(() => cameras.value.slice(0, 5));
+const latestLogs = computed(() => logs.value.slice(0, 5));
+const latestAlerts = computed(() => alerts.value.slice(0, 5));
+
+// 시간 포맷
+function formatLoginTime(timeString) {
+  const d = new Date(timeString);
+  const yyyy = d.getFullYear();
+  const MM = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  const ss = String(d.getSeconds()).padStart(2, '0');
+  return `${yyyy}-${MM}-${dd} ${hh}:${mm}:${ss}`;
+}
 </script>
 
 <style scoped>
@@ -125,9 +170,7 @@ const formatLoginTime = (timeString) => {
 
 .grid-layout {
   display: grid;
-  grid-template-areas:
-    'camera camera'
-    'dashboard alert';
+  grid-template-areas: 'camera camera' 'dashboard alert';
   grid-template-columns: 2fr 1fr;
   gap: 25px;
 }
@@ -146,10 +189,7 @@ const formatLoginTime = (timeString) => {
 
 @media (max-width: 1200px) {
   .grid-layout {
-    grid-template-areas:
-      'camera'
-      'dashboard'
-      'alert';
+    grid-template-areas: 'camera' 'dashboard' 'alert';
     grid-template-columns: 1fr;
   }
 }
@@ -158,14 +198,23 @@ const formatLoginTime = (timeString) => {
   border: 1px solid #ccc;
   border-radius: 12px;
   padding: 25px;
-  background-color: #f9f9f9;
+  background: #f9f9f9;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.camera-streams {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.stream-thumb {
+  flex: 1 1 calc(50% - 10px);
 }
 
 .camera-stream {
   width: 100%;
   border-radius: 8px;
-  border: 1px solid #ccc;
   object-fit: cover;
 }
 
@@ -196,7 +245,7 @@ table td {
 }
 
 table th {
-  background-color: #f4f4f4;
+  background: #f4f4f4;
 }
 
 .success {
@@ -212,12 +261,32 @@ table th {
 .scroll-list {
   max-height: 300px;
   overflow-y: auto;
-  padding-left: 20px;
-  list-style: disc;
+  padding: 0;
+  margin: 0;
+  list-style: none;
 }
 
-.scroll-list li {
-  margin-bottom: 8px;
-  font-size: 1rem;
+.alert-item {
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.alert-item:last-child {
+  border-bottom: none;
+}
+
+.time {
+  font-size: 0.8rem;
+  color: #718096;
+  margin-bottom: 4px;
+}
+
+.msg {
+  font-size: 0.9rem;
+  color: #2d3748;
+  line-height: 1.3;
+  word-break: keep-all;
 }
 </style>

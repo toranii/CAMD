@@ -1,3 +1,4 @@
+//backend/routes/auth.js
 const express = require('express');
 const router = express.Router();
 const jwt = require('jsonwebtoken');
@@ -8,6 +9,7 @@ require('dotenv').config();
 
 // POST /api/auth/login
 router.post('/login', (req, res) => {
+  console.log('[DEBUG] /login 엔드포인트 진입, body =', req.body);
   const { email, password: plainPwd } = req.body;
   const rawIp =
     req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
@@ -69,6 +71,7 @@ router.post('/login', (req, res) => {
     });
 
     async function proceedToLogin(conn, email, plainPwd, ip) {
+      console.log('[DEBUG] proceedToLogin 호출됨:', email);
       const selSql = 'SELECT * FROM users WHERE email = ?';
       conn.query(selSql, [email], async (selErr, rows) => {
         if (selErr) {
@@ -89,6 +92,54 @@ router.post('/login', (req, res) => {
           (insErr) => {
             conn.release();
             if (insErr) console.error('로그 기록 오류:', insErr);
+            console.log('[DEBUG] 로그인 실패? success=', success);
+
+            // — 실패 시 연속 실패 카운트 체크 & 알림 생성
+            if (!success && userRow) {
+              console.log('[DEBUG] 알림 생성 로직 진입, user_id=', userRow.id);
+              db.getConnection((e2, c2) => {
+                if (e2) return console.error(e2);
+                c2.query(
+                  `SELECT success
+                   FROM login_logs
+                   WHERE user_id = ?
+                   ORDER BY login_time DESC
+                   LIMIT 10`,
+                  [userRow.id],
+                  (e3, rows3) => {
+                    if (e3) {
+                      c2.release();
+                      return console.error(e3);
+                    }
+                    let cnt = 0;
+                    for (const r of rows3) {
+                      if (r.success === 0) cnt++;
+                      else break;
+                    }
+                    let msg = null;
+                    if (cnt === 5)
+                      msg = '로그인 5회 실패하였습니다. 계정이 1분 잠금됩니다.';
+                    else if (cnt === 8)
+                      msg = '로그인 8회 실패하였습니다. 계정이 5분 잠금됩니다.';
+                    else if (cnt === 10)
+                      msg =
+                        '로그인 10회 실패하였습니다. 계정을 사용할 수 없습니다. 관리자에게 문의하여주십시오.';
+                    if (msg) {
+                      c2.query(
+                        'INSERT INTO alerts (user_id, message) VALUES (?,?)',
+                        [userRow.id, msg],
+                        (e4) => {
+                          if (e4) console.error('알림 생성 오류:', e4);
+                          c2.release();
+                        },
+                      );
+                    } else {
+                      c2.release();
+                    }
+                  },
+                );
+              });
+            }
           },
         );
 

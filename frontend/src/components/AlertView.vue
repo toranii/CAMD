@@ -11,7 +11,8 @@
           :class="{ selected: selectedAlerts.includes(index) }"
           @click="deleteMode && toggleSelect(index)"
         >
-          <span class="time">{{ alert.time }}</span>
+          <!-- formatTime 호출 -->
+          <span class="time">{{ formatTime(alert.time) }}</span>
           <span class="msg">{{ alert.message }}</span>
         </li>
       </ul>
@@ -43,13 +44,36 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
+import axios from 'axios';
 
-const alerts = ref([
-  { time: '2025-04-10 09:00:00', message: '카메라 연결 끊김 감지' },
-  { time: '2025-04-10 09:05:00', message: '비정상 로그인 시도 탐지' },
-  { time: '2025-04-10 09:10:00', message: '침입 감지 알림 전송됨' },
-]);
+const alerts = ref([]);
+
+// 로그인 시 localStorage에 저장된 user 객체에서 id 꺼내기
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+const userId = user.id;
+
+onMounted(() => {
+  if (!userId) return;
+  axios
+    .get(`http://localhost:5000/api/alerts?user_id=${userId}`)
+    .then(({ data }) => {
+      alerts.value = data;
+    })
+    .catch((err) => {
+      console.error('알림 조회 실패:', err);
+    });
+});
+
+/**
+ * ISO 8601 문자열(UTC)을 사용자의 로컬 타임존 포맷으로 변환
+ * @param {string} isoString
+ * @returns {string}
+ */
+function formatTime(isoString) {
+  const d = new Date(isoString);
+  return d.toLocaleString();
+}
 
 const deleteMode = ref(false);
 const selectedAlerts = ref([]);

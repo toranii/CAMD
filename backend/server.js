@@ -1,9 +1,11 @@
+//backend/server.js
 const express = require('express');
 const cors = require('cors');
 const db = require('./db');
 const authRoutes = require('./routes/auth');
 const deviceRoutes = require('./routes/device');
 const loginLogsRoutes = require('./routes/login-logs');
+const alertsRoutes = require('./routes/alerts');
 require('dotenv').config();
 
 const app = express();
@@ -17,6 +19,8 @@ app.get('/', (req, res) => {
 
 // 로그인 라우트 등록
 app.use('/api/auth', authRoutes);
+// 알림 라우트 등록
+app.use('/api', alertsRoutes);
 // 로그인 로그 라우트 등록
 app.use('/api/auth', loginLogsRoutes);
 app.use('/api/device', deviceRoutes);
