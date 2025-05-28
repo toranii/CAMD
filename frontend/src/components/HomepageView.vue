@@ -1,6 +1,6 @@
 <template>
   <div class="home-container">
-    <h1 class="title"> 홈 화면</h1>
+    <h1 class="title">🏠 홈 화면</h1>
     <div class="grid-layout">
       <!-- 1. 카메라 박스 -->
       <div class="box camera-box">
