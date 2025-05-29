@@ -77,8 +77,8 @@ CREATE TABLE `refresh_tokens` (
 
 
 -- (선택) 5. 예시 디바이스 등록
-INSERT INTO `devices` (`device_name`, `token`)
-VALUES ('MyESP32CAM', 'esp32_secure_token_123');
+INSERT INTO `devices` (`id`, `device_name`, `token`, `created_at`, `mac_address`, `ip_address`)
+VALUES ('4', 'MyESP32CAM', ',ARMyABPArz04nV30NgJ64z1qpyLiukF2', '2025-05-29 15:28:29', 'A4:CF:12:2F:85:64', '192.168.0.7');
 
 -- 확인용
 SELECT * FROM devices;
