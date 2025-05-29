@@ -5,18 +5,20 @@
       <!-- 1. 카메라 박스 -->
       <div class="box camera-box">
         <h2>카메라</h2>
-        <!-- 최신 5개 카메라 중 등록된 게 있으면 썸네일로 보여주기 -->
-        <div v-if="latestCameras.length > 0" class="camera-streams">
-          <div
-            v-for="(cam, idx) in latestCameras"
-            :key="idx"
-            class="stream-thumb"
-          >
-            <img :src="cam.url" alt="Camera Stream" class="camera-stream" />
+
+        <!-- 기본 카메라가 설정되어 있으면 -->
+        <div v-if="cameraBaseUrl" class="camera-streams">
+          <div class="stream-thumb">
+            <img
+              :src="cameraBaseUrl"
+              alt="Camera Stream"
+              class="camera-stream"
+            />
           </div>
         </div>
-        <!-- 없으면 안내 문구 -->
-        <p v-else class="no-camera">기본 카메라가 설정되지 않았습니다.</p>
+
+        <!-- 기본 카메라가 없음일 경우 -->
+        <p v-else class="no-msg">설정 페이지를 확인하세요.</p>
       </div>
 
       <!-- 2. 대시보드 박스 -->
@@ -84,6 +86,8 @@
 import { ref, onMounted, computed } from 'vue';
 import axios from 'axios';
 
+const cameraBaseUrl = ref('');
+
 const cameras = ref([]);
 const logs = ref([]);
 const alerts = ref([]);
@@ -108,6 +112,7 @@ async function fetchSettings() {
     const { data } = await axios.get(
       `http://localhost:5000/api/user/page-settings/${userId}`,
     );
+    cameraBaseUrl.value = data.camera_base_url || '';
     dashboardItemLimit.value = data.dashboard_item_count || 0;
     alertItemLimit.value = data.alert_item_count || 0;
   } catch (e) {
@@ -152,7 +157,7 @@ async function fetchAlerts() {
 }
 
 // ✅ 개수 제한에 따라 자르기
-const latestCameras = computed(() => cameras.value.slice(0, 5));
+
 const latestLogs = computed(() =>
   dashboardItemLimit.value === 0
     ? []
