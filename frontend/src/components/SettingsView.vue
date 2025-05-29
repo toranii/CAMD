@@ -198,8 +198,8 @@ const savePageSettings = async () => {
       user_id: user.id,
       camera_base_url: cameraBaseUrl.value,
       dashboard_item_count: parseInt(dashboardItemCount.value),
-      notification_setting: notificationSetting.value,
       alert_item_count: parseInt(alertItemCount.value),
+      notification_setting: notificationSetting.value,
     });
     pageMessage.value = '페이지 설정이 저장되었습니다.';
     initialSettings.value = {
