@@ -117,10 +117,10 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import axios from 'axios';
 
-const notificationSetting = ref('');
 const cameraBaseUrl = ref('');
-const dashboardItemCount = ref('');
-const alertItemCount = ref('');
+const dashboardItemCount = ref('0');
+const alertItemCount = ref('0');
+const notificationSetting = ref('off');
 
 const currentPassword = ref('');
 const newPassword = ref('');

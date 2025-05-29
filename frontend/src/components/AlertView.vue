@@ -19,6 +19,10 @@
     <!-- 알림 리스트 -->
     <div class="alert-list">
       <ul>
+        <li v-if="notificationSetting === 'off'" class="disabled-msg">
+          ⚠️ 알림 수신이 꺼져 있습니다. 설정 페이지에서 알림 수신을 켜주세요.
+        </li>
+
         <li
           v-for="(alert, index) in paginatedAlerts"
           :key="index"
@@ -28,6 +32,7 @@
           <span class="time">{{ formatTime(alert.time) }}</span>
           <span class="msg">{{ alert.message }}</span>
         </li>
+
         <li v-if="paginatedAlerts.length === 0" class="empty-msg">
           표시할 알림이 없습니다.
         </li>
@@ -83,6 +88,18 @@ const itemsPerPage = 20;
 
 const user = JSON.parse(localStorage.getItem('user') || '{}');
 const userId = user.id;
+const notificationSetting = ref('off');
+
+async function fetchNotificationSetting() {
+  try {
+    const res = await axios.get(
+      `http://localhost:5000/api/user/page-settings/${userId}`,
+    );
+    notificationSetting.value = res.data.notification_setting || 'off';
+  } catch (err) {
+    console.error('설정 조회 실패:', err);
+  }
+}
 
 const fetchAlerts = async () => {
   if (!userId) return;
@@ -96,9 +113,10 @@ const fetchAlerts = async () => {
   }
 };
 
-onMounted(() => {
-  fetchAlerts();
-  setInterval(fetchAlerts, 1000); // 1초마다 갱신
+onMounted(async () => {
+  await fetchNotificationSetting(); // 먼저 알림 수신 여부 확인
+  await fetchAlerts(); // 이후 알림 불러오기
+  setInterval(fetchAlerts, 1000); // 이후 주기적 자동 갱신
 });
 
 const filteredAndSortedAlerts = computed(() => {
@@ -314,5 +332,14 @@ function formatTime(isoString) {
   padding: 1rem;
   font-style: italic;
   color: #a0aec0;
+}
+
+.disabled-msg {
+  background-color: #fefcbf;
+  color: #744210;
+  font-weight: 500;
+  padding: 10px;
+  text-align: center;
+  border-bottom: 1px solid #e2e8f0;
 }
 </style>
