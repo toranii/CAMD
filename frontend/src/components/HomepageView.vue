@@ -110,7 +110,7 @@ onMounted(async () => {
 async function fetchSettings() {
   try {
     const { data } = await axios.get(
-      `http://localhost:5000/api/user/page-settings/${userId}`,
+      `http://203.234.19.95:23918/api/user/page-settings/${userId}`,
     );
     cameraBaseUrl.value = data.camera_base_url || '';
     dashboardItemLimit.value = data.dashboard_item_count || 0;
@@ -122,7 +122,7 @@ async function fetchSettings() {
 
 async function fetchCameras() {
   try {
-    const res = await axios.get('http://localhost:5000/api/device/list');
+    const res = await axios.get('http://203.234.19.95:23918/api/device/list');
     if (res.data.success) {
       cameras.value = res.data.devices.map((d) => ({
         id: d.id,
@@ -137,7 +137,7 @@ async function fetchCameras() {
 async function fetchLogs() {
   try {
     const { data } = await axios.get(
-      `http://localhost:5000/api/auth/login-logs?user_id=${userId}`,
+      `http://203.234.19.95:23918/api/auth/login-logs?user_id=${userId}`,
     );
     logs.value = data;
   } catch (e) {
@@ -148,7 +148,7 @@ async function fetchLogs() {
 async function fetchAlerts() {
   try {
     const { data } = await axios.get(
-      `http://localhost:5000/api/alerts?user_id=${userId}`,
+      `http://203.234.19.95:23918/api/alerts?user_id=${userId}`,
     );
     alerts.value = data;
   } catch (e) {

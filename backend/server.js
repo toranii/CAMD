@@ -11,7 +11,12 @@ const settingsRoutes = require('./routes/settings');
 require('dotenv').config();
 
 const app = express();
-app.use(cors());
+app.use(
+  cors({
+    origin: '*',
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 // ✅ 기본 경로 추가 (Cannot GET / 오류 해결)

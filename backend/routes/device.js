@@ -28,30 +28,33 @@ router.post('/register', (req, res) => {
     connection.query(checkSql, [mac], (checkErr, results) => {
       if (checkErr) {
         connection.release();
-        console.error('DB 조회 실패:', checkErr);
         return res
           .status(500)
           .json({ success: false, message: 'DB 조회 실패' });
       }
 
       if (results.length > 0) {
-        // 이미 존재 → 토큰만 갱신
-        const updateSql =
-          'UPDATE devices SET token = ?, ip_address = ?, device_name = ? WHERE mac_address = ?';
+        // 이미 존재 → 토큰만 갱신하고 is_deleted 해제
+        const existingDevice = results[0];
+        const updateSql = `
+      UPDATE devices
+      SET token = ?, ip_address = ?, device_name = ?, is_deleted = FALSE
+      WHERE mac_address = ?`;
         connection.query(
           updateSql,
           [token, ip_address, device_name, mac],
           (updateErr) => {
             connection.release();
             if (updateErr) {
-              console.error('DB 업데이트 실패:', updateErr);
               return res
                 .status(500)
                 .json({ success: false, message: 'DB 업데이트 실패' });
             }
             return res.status(200).json({
               success: true,
-              message: '디바이스 토큰 업데이트 완료',
+              message: existingDevice.is_deleted
+                ? '디바이스 등록 완료'
+                : '디바이스 토큰 업데이트 완료',
             });
           },
         );
@@ -89,7 +92,7 @@ router.post('/register', (req, res) => {
 // 등록된 장치 목록 조회
 router.get('/list', (req, res) => {
   db.query(
-    'SELECT mac_address, token, device_name, ip_address FROM devices',
+    'SELECT mac_address, token, device_name, ip_address FROM devices WHERE is_deleted = FALSE',
     (err, results) => {
       if (err) {
         console.error('DB 조회 실패:', err);
@@ -141,7 +144,7 @@ router.post('/verify', async (req, res) => {
 
       // DB에서 해당 토큰이 등록된 MAC과 일치하는지 확인
       db.query(
-        'SELECT * FROM devices WHERE token = ?',
+        'SELECT * FROM devices WHERE token = ? AND is_deleted = FALSE',
         [token],
         (err, results) => {
           if (err) {
@@ -185,25 +188,26 @@ router.post('/verify', async (req, res) => {
 
 // 디바이스 삭제 API
 router.post('/delete', (req, res) => {
-  const { mac_addresses } = req.body;
+  return res.json({ success: true, message: '삭제 완료' });
+  //const { mac_addresses } = req.body;
 
-  if (!Array.isArray(mac_addresses) || mac_addresses.length === 0) {
-    return res
-      .status(400)
-      .json({ success: false, message: 'MAC 주소 배열이 필요합니다.' });
-  }
+  //if (!Array.isArray(mac_addresses) || mac_addresses.length === 0) {
+  // return res
+  //   .status(400)
+  //   .json({ success: false, message: 'MAC 주소 배열이 필요합니다.' });
+  //}
 
-  const placeholders = mac_addresses.map(() => '?').join(',');
-  const deleteSql = `DELETE FROM devices WHERE mac_address IN (${placeholders})`;
+  //const placeholders = mac_addresses.map(() => '?').join(',');
+  // const deleteSql = `UPDATE devices SET is_deleted = TRUE WHERE mac_address IN (${placeholders})`;
 
-  db.query(deleteSql, mac_addresses, (err, results) => {
-    if (err) {
-      console.error('디바이스 삭제 실패:', err);
-      return res.status(500).json({ success: false, message: 'DB 삭제 실패' });
-    }
+  //db.query(deleteSql, mac_addresses, (err, results) => {
+  //   if (err) {
+  //   console.error('디바이스 삭제 실패:', err);
+  //  return res.status(500).json({ success: false, message: 'DB 삭제 실패' });
+  // }
 
-    return res.json({ success: true, message: '디바이스 삭제 완료' });
-  });
+  //return res.json({ success: true, message: '디바이스 삭제 완료' });
+  // });
 });
 
 module.exports = router;

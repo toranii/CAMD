@@ -151,7 +151,7 @@ const handleSignup = async () => {
   if (!canSubmit.value) return;
 
   try {
-    await axios.post('http://localhost:5000/api/auth/signup', {
+    await axios.post('http://203.234.19.95:23918/api/auth/signup', {
       name: name.value,
       email: email.value,
       password: password.value,
@@ -204,9 +204,12 @@ const validateEmail = async () => {
     return;
   }
   try {
-    const res = await axios.post('http://localhost:5000/api/auth/check_email', {
-      email: email.value,
-    });
+    const res = await axios.post(
+      'http://203.234.19.95:23918/api/auth/check_email',
+      {
+        email: email.value,
+      },
+    );
     if (res.data.exists) {
       emailMessage.value = '이미 존재하는 이메일입니다.';
       emailMessageClass.value = 'error-msg';
@@ -227,9 +230,12 @@ const validatePhone = async () => {
     return;
   }
   try {
-    const res = await axios.post('http://localhost:5000/api/auth/check_phone', {
-      phone: phone.value,
-    });
+    const res = await axios.post(
+      'http://203.234.19.95:23918/api/auth/check_phone',
+      {
+        phone: phone.value,
+      },
+    );
     if (res.data.exists) {
       phoneMessage.value = '이미 존재하는 전화번호입니다.';
       phoneMessageClass.value = 'error-msg';

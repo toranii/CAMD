@@ -77,10 +77,13 @@ const sanitizePassword = () => {
 
 const handleLogin = async () => {
   try {
-    const response = await axios.post('http://localhost:5000/api/auth/login', {
-      email: email.value.trim(),
-      password: password.value.trim(),
-    });
+    const response = await axios.post(
+      'http://203.234.19.95:23918/api/auth/login',
+      {
+        email: email.value.trim(),
+        password: password.value.trim(),
+      },
+    );
 
     const token = response.data.token;
     const user = response.data.user;

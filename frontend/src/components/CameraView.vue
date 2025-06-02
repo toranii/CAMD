@@ -100,7 +100,7 @@ onMounted(() => {
 
 const fetchCameraList = async () => {
   try {
-    const res = await axios.get('http://localhost:5000/api/device/list');
+    const res = await axios.get('http://203.234.19.95:23918/api/device/list');
     if (res.data.success) {
       cameras.value = res.data.devices
         .filter((device) => device.ip_address)
@@ -131,7 +131,7 @@ const registerDevice = async () => {
   try {
     // 1) 토큰 검증
     const { data: verify } = await axios.post(
-      'http://localhost:5000/api/device/verify',
+      'http://203.234.19.95:23918/api/device/verify',
       { ip: newCameraIp.value },
     );
     if (!verify.success) {
@@ -141,7 +141,7 @@ const registerDevice = async () => {
 
     // 2) DB 에 실제 등록
     const { data: reg } = await axios.post(
-      'http://localhost:5000/api/device/register',
+      'http://203.234.19.95:23918/api/device/register',
       {
         mac: verify.mac,
         token: verify.token,
@@ -174,17 +174,13 @@ const confirmAction = async () => {
   if (showRegisterBox.value) return registerDevice();
 
   if (deleteMode.value) {
-    const deletedMacs = cameras.value
-      .filter((c) => selectedCameras.value.includes(c.id))
-      .map((c) => c.mac);
-
-    try {
-      await axios.post('http://localhost:5000/api/device/delete', {
-        mac_addresses: deletedMacs,
-      });
-    } catch (err) {
-      console.error('장치 삭제 요청 실패', err);
-    }
+    //try {
+    //  await axios.post('http://203.234.19.95:23918/api/device/delete', {
+    //    mac_addresses: deletedMacs,
+    //  });
+    // } catch (err) {
+    //console.error('장치 삭제 요청 실패', err);
+    //}
 
     cameras.value = cameras.value.filter(
       (camera) => !selectedCameras.value.includes(camera.id),

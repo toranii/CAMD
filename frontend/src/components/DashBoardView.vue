@@ -105,7 +105,7 @@ const fetchLogs = async () => {
     // 로그인한 사용자 정보에서 ID 꺼내기
     const user = JSON.parse(localStorage.getItem('user') || '{}');
     const response = await axios.get(
-      `http://localhost:5000/api/auth/login-logs?user_id=${user.id}`,
+      `http://203.234.19.95:23918/api/auth/login-logs?user_id=${user.id}`,
     );
     logs.value = response.data.slice(0, 200);
   } catch (error) {

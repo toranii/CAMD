@@ -93,7 +93,7 @@ const notificationSetting = ref('off');
 async function fetchNotificationSetting() {
   try {
     const res = await axios.get(
-      `http://localhost:5000/api/user/page-settings/${userId}`,
+      `http://203.234.19.95:23918/api/user/page-settings/${userId}`,
     );
     notificationSetting.value = res.data.notification_setting || 'off';
   } catch (err) {
@@ -105,7 +105,7 @@ const fetchAlerts = async () => {
   if (!userId) return;
   try {
     const { data } = await axios.get(
-      `http://localhost:5000/api/alerts?user_id=${userId}`,
+      `http://203.234.19.95:23918/api/alerts?user_id=${userId}`,
     );
     alerts.value = data;
   } catch (err) {
@@ -173,7 +173,7 @@ const confirmDelete = async () => {
   );
 
   try {
-    await axios.post('http://localhost:5000/api/alerts/delete', {
+    await axios.post('http://203.234.19.95:23918/api/alerts/delete', {
       alert_ids: idsToDelete,
     });
 

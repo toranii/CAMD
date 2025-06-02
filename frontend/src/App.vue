@@ -105,7 +105,7 @@ const handleLoginSuccess = async () => {
 
 async function fetchUserInfo() {
   try {
-    const res = await axios.get(`http://localhost:5000/users/${user.id}`);
+    const res = await axios.get(`http://203.234.19.95:23918/users/${user.id}`);
     userInfo.value = res.data;
   } catch (err) {
     console.error('사용자 정보 불러오기 실패:', err);
@@ -114,7 +114,7 @@ async function fetchUserInfo() {
 
 async function fetchCameraCount() {
   try {
-    const res = await axios.get('http://localhost:5000/api/device/list');
+    const res = await axios.get('http://203.234.19.95:23918/api/device/list');
     if (res.data.success) {
       // 전체 등록된 장치 개수 반환
       cameraCount.value = res.data.devices.length;
@@ -162,7 +162,7 @@ onMounted(async () => {
 
   if (token) {
     try {
-      await axios.post('http://localhost:5000/api/auth/verify_token', {
+      await axios.post('http://203.234.19.95:23918/api/auth/verify_token', {
         token,
       });
       isLoggedIn.value = true;
@@ -191,7 +191,7 @@ watch(
 
     if (token) {
       try {
-        await axios.post('http://localhost:5000/api/auth/verify_token', {
+        await axios.post('http://203.234.19.95:23918/api/auth/verify_token', {
           token,
         });
         isLoggedIn.value = true;

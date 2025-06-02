@@ -194,7 +194,7 @@ const canChangePassword = computed(() => {
 const savePageSettings = async () => {
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
-    await axios.post('http://localhost:5000/api/user/page-settings', {
+    await axios.post('http://203.234.19.95:23918/api/user/page-settings', {
       user_id: user.id,
       camera_base_url: cameraBaseUrl.value,
       dashboard_item_count: parseInt(dashboardItemCount.value),
@@ -236,7 +236,7 @@ const saveUserPassword = async () => {
   }
 
   try {
-    await axios.post('http://localhost:5000/api/auth/change-password', {
+    await axios.post('http://203.234.19.95:23918/api/auth/change-password', {
       user_id: user.id,
       current_password: currentPassword.value,
       new_password: newPassword.value,
