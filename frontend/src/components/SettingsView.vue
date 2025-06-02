@@ -157,7 +157,7 @@ onMounted(async () => {
   const user = JSON.parse(localStorage.getItem('user') || '{}');
   try {
     const { data: deviceData } = await axios.get(
-      `http://localhost:5000/api/device/list`,
+      `http://203.234.19.95:23918/api/device/list`,
     );
     registeredCameras.value = deviceData.devices.map((device) => ({
       id: device.id,
@@ -165,11 +165,11 @@ onMounted(async () => {
       url: `http://${device.ip_address}:82/stream`,
     }));
     const settings = await axios.get(
-      `http://localhost:5000/api/user/page-settings/${user.id}`,
+      `http://203.234.19.95:23918/api/user/page-settings/${user.id}`,
     );
     alertItemLimit.value = settings.data.alert_item_count || 0;
     const { data: settingData } = await axios.get(
-      `http://localhost:5000/api/user/page-settings/${user.id}`,
+      `http://203.234.19.95:23918/api/user/page-settings/${user.id}`,
     );
     notificationSetting.value = settingData.notification_setting;
     cameraBaseUrl.value = settingData.camera_base_url;
