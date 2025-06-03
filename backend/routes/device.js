@@ -3,11 +3,13 @@ const router = express.Router();
 const db = require('../db');
 const crypto = require('crypto');
 const fetch = require('node-fetch').default;
+const externalStreamIP = '203.234.19.95:82';
 
 // 디바이스 등록 API
 router.post('/register', (req, res) => {
   console.log('[요청 수신] /api/device/register');
   const { mac, token, device_name, ip_address } = req.body;
+  // const ip_address = externalStreamIP;
 
   res.setHeader('Content-Type', 'application/json');
 
@@ -38,7 +40,7 @@ router.post('/register', (req, res) => {
         const existingDevice = results[0];
         const updateSql = `
       UPDATE devices
-      SET token = ?, ip_address = ?, device_name = ?, is_deleted = FALSE
+      SET token = ?, ip_address = ?, device_name = ?
       WHERE mac_address = ?`;
         connection.query(
           updateSql,
@@ -52,9 +54,7 @@ router.post('/register', (req, res) => {
             }
             return res.status(200).json({
               success: true,
-              message: existingDevice.is_deleted
-                ? '디바이스 등록 완료'
-                : '디바이스 토큰 업데이트 완료',
+              message: '디바이스 토큰 업데이트 완료',
             });
           },
         );
@@ -76,7 +76,7 @@ router.post('/register', (req, res) => {
             return res.status(200).json({
               success: true,
               message: '디바이스 등록 완료',
-              streamUrl: `http://${ip_address}:82/stream`,
+              // streamUrl: `http://203.234.19.95:8882/stream`,
               mac,
               token,
               device_name: device_name || 'ESP32CAM',
@@ -92,7 +92,7 @@ router.post('/register', (req, res) => {
 // 등록된 장치 목록 조회
 router.get('/list', (req, res) => {
   db.query(
-    'SELECT mac_address, token, device_name, ip_address FROM devices WHERE is_deleted = FALSE',
+    'SELECT mac_address, token, device_name, ip_address FROM devices ',
     (err, results) => {
       if (err) {
         console.error('DB 조회 실패:', err);
@@ -144,7 +144,7 @@ router.post('/verify', async (req, res) => {
 
       // DB에서 해당 토큰이 등록된 MAC과 일치하는지 확인
       db.query(
-        'SELECT * FROM devices WHERE token = ? AND is_deleted = FALSE',
+        'SELECT * FROM devices WHERE token = ? ',
         [token],
         (err, results) => {
           if (err) {
@@ -163,7 +163,7 @@ router.post('/verify', async (req, res) => {
               mac: device.mac_address,
               token: device.token,
               deviceName: device.device_name,
-              ipAddress: ip,
+              ipAddress: device.ip_address,
             });
           } else {
             return res

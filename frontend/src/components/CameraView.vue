@@ -95,7 +95,7 @@ onMounted(() => {
   window.addEventListener('resize', () => {
     windowWidth.value = window.innerWidth;
   });
-  fetchCameraList();
+  //fetchCameraList();
 });
 
 const fetchCameraList = async () => {
