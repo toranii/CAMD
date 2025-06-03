@@ -11,6 +11,12 @@ const settingsRoutes = require('./routes/settings');
 require('dotenv').config();
 
 const app = express();
+
+// ▼ 포트포워딩/리버스프록시 뒤에서 진짜 클라이언트 IP를 읽도록 설정
+//    (예: Nginx → 203.234.19.95:23917 → 192.168.0.11:3000 같이 프록시가 있을 때,
+//     req.ip 에 실제 사용자의 공인 IP가 들어오도록 합니다.)
+app.set('trust proxy', true);
+
 app.use(
   cors({
     origin: '*',

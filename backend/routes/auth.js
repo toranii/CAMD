@@ -4,16 +4,14 @@ const router = express.Router();
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const db = require('../db');
-const normalizeIp = require('../utils/normalizeIp');
 require('dotenv').config();
 
 // POST /api/auth/login
 router.post('/login', (req, res) => {
   console.log('[DEBUG] /login 엔드포인트 진입, body =', req.body);
   const { email, password: plainPwd } = req.body;
-  const rawIp =
-    req.headers['x-forwarded-for'] || req.socket.remoteAddress || null;
-  const ip = normalizeIp(rawIp);
+  // 실제 클라이언트 IP(포트포워딩된 뒤에도 최종 원격 IP)를 req.ip로 읽는다.
+  const ip = req.ip;
 
   db.getConnection((err, conn) => {
     if (err) return res.status(500).send('DB 연결 오류');
